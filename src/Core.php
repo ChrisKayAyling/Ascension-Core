@@ -4,34 +4,43 @@ namespace Ascension;
 
 class Core
 {
-    public $Resources = array();
-    private $TwigTemplates = array();
-    private $ViewData = array();
+    public static $Resources = array();
+    private static $TwigTemplates = array();
+    private static $ViewData = array();
+    public static $Debug = true;
 
-    public function ascend() {
+    /**
+     * @throws \Exception
+     */
+    public static function ascend() {
         // Sanity Check
-        $this->__saneSys();
+        self::__saneSys();
 
         // Setup System
-        $this->__setupSys();
+        self::__setupSys();
 
         try {
-            $this->__loadSettings();
+            self::__loadSettings();
         } catch (\Exception $e) {
             throw new \Exception("Could not load settings file. Exception given: " . $e->getMessage());
         }
 
         $Request = new HTTP($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
-        $this->__injectResource('Request', $Request);
+        self::__injectResource('Request', $Request);
 
         // Loader
-        $this->__loader();
-        $this->__output();
+        self::__loader();
+        self::__output();
     }
 
+    /**
+     * @param $Name
+     * @param $Object
+     * @return bool
+     */
     public function addDataStorageObject($Name, $Object) {
         if (!isset($this->Resources['DataStorage'][$Name])) {
-            $this->Resources['DataStorage'][$Name] = $Object;
+            self::$Resources['DataStorage'][$Name] = $Object;
             return TRUE;
         }
         return FALSE;
@@ -40,7 +49,7 @@ class Core
     /**
      * @throws \Exception
      */
-    private function __saneSys() {
+    private static function __saneSys() {
         try {
             if (!function_exists("curl_init")) {
                 $error = "PHP Extension curl not installed.";
@@ -56,11 +65,12 @@ class Core
 
     }
 
-    private function __setupSys() {
-
-        date_default_timezone_set('Europe/London');
-        ini_set("session.gc_maxlifetime", "604800");
+    /**
+     * @return void
+     */
+    private static function __setupSys() {
         session_start();
+        date_default_timezone_set('Europe/London');
 
         header("Cache-Control: no-store, no-cache, must-revalidate");
         header("Cache-Control: post-check=0, pre-check=0", false);
@@ -105,13 +115,13 @@ class Core
     /**
      * @throws \Exception
      */
-    public function __loadSettings() {
+    public static function __loadSettings() {
         try {
             $settings = json_encode(
                 file_get_contents(ROOT . DS . "etc" . DS . "config.json")
             );
 
-            $this->__injectResource("Settings", $settings);
+            self::__injectResource("Settings", $settings);
 
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
@@ -121,42 +131,45 @@ class Core
     /**
      * @throws \Exception
      */
-    public function __loader() {
+    public static function __loader() {
         try {
 
-            $this->Resources['Request']->route();
+            self::$Resources['Request']->route();
 
-            $rStr = ucfirst($this->Resources['Request']->controller) . "\\Repository\\Repository";
+            $rStr = ucfirst(self::$Resources['Request']->controller) . "\\Repository\\Repository";
             if (!class_exists($rStr)) {
                 throw new \Exception($rStr . " Repository class not found");
             } else {
                 try {
-                    $r = new $rStr($this->Resources['DataStorage'], $this->Resources['Settings']);
+                    $r = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
                 } catch (\Exception $e) {
                     throw new \Exception($e);
                 }
             }
 
-            $cStr = ucfirst($this->Resources['Request']->controller) . "\\Controller\\Controller";
+            $cStr = ucfirst(self::$Resources['Request']->controller) . "\\Controller\\Controller";
 
             if (!class_exists($cStr)) {
                 throw new \Exception($cStr . "Controller class not found.");
             } else {
-                $c = new $cStr($this->Resources['Request'], $this->Resources['Settings'], $r);
+                $c = new $cStr(self::$Resources['Request'], self::$Resources['Settings'], $r);
             }
 
-            if ($this->Resources['Request']->action == "") {
-                $this->Resources['Request']->action = 'main';
+            if (self::$Resources['Request']->action == "") {
+                self::$Resources['Request']->action = 'main';
             }
 
-            $a = $this->Resources['Request']->action;
+            $a = self::$Resources['Request']->action;
             $c->$a();
 
-            $this->TwigTemplates = $c->templates;
-            $this->ViewData = $c->data;
+            self::$TwigTemplates = $c->templates;
+            self::$ViewData = $c->data;
 
-            $this->ViewData['Ascension-Common'] = $this->getCommon();
+            self::$ViewData['Ascension-Common'] = self::getCommon();
 
+
+            if (self::$Debug) d("Ascension Core Debug Output");
+            if (self::$Debug) d(self::$Resources);
 
         } catch (\Exception $e) {
             throw new \Exception($e);
@@ -166,11 +179,11 @@ class Core
     /**
      * @return void
      */
-    private function __output() {
+    private static function __output() {
         // Process JSON
-        if ($this->Resources['Request']->isJson === TRUE) {
+        if (self::$Resources['Request']->isJson === TRUE) {
             header("Content-Type: application/json");
-            echo json_encode($this->ViewData,true);
+            echo json_encode(self::$ViewData,true);
             exit();
         } else {
             echo "Twig templating not implemented yet.";
@@ -181,7 +194,7 @@ class Core
     /**
      * @return array
      */
-    private function getCommon() {
+    private static function getCommon() {
         $data = array();
 
         // Server
@@ -216,9 +229,9 @@ class Core
      * @param $Resource
      * @return false|void
      */
-    public function __injectResource($Name, $Resource) {
+    public static function __injectResource($Name, $Resource) {
         if (!isset($Name)) {
-            $this->Resources[$Name] = $Resource;
+            self::$Resources[$Name] = $Resource;
             return TRUE;
         }
         return FALSE;
@@ -229,9 +242,9 @@ class Core
      * @param $Name
      * @return false|void
      */
-    public function __removeResource($Name) {
+    public static function __removeResource($Name) {
         if (isset($Name)) {
-            unset($this->Resources[$Name]);
+            unset(self::$Resources[$Name]);
             return TRUE;
         }
         return FALSE;
