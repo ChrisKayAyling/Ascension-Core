@@ -80,8 +80,10 @@ class Core
             define('DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT']);
         }
 
-        if (!defined('DS')) {
-            define('DS', '/');
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            define("DS", "\\");
+        } else {
+            define("DS", "/");
         }
 
         if (isset($_SERVER['SERVER_ADDR'])) {
@@ -117,8 +119,8 @@ class Core
         self::__setupSys();
 
         try {
-            $settings = json_encode(
-                file_get_contents(ROOT . DS . "etc" . DS . "config.json")
+            $settings = json_decode(
+                file_get_contents(".." . DS . "etc" . DS . "config.json")
             );
 
             self::__injectResource("Settings", $settings);
