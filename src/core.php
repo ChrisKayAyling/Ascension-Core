@@ -2,8 +2,6 @@
 
 namespace Ascension;
 
-use CMA\DatabaseConnector\MSSQLConnector;
-
 class Core
 {
     public $Resources = array();
@@ -25,7 +23,7 @@ class Core
             throw new \Exception("Could not load settings file. Exception given: " . $e->getMessage());
         }
 
-        $Request = new \Framework\HTTP\Request($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
+        $Request = new HTTP($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
         $this->__injectResource('Request', $Request);
 
         // Loader
@@ -105,8 +103,6 @@ class Core
         if (!defined('FRAMEWORK_DIR')) {
             define('FRAMEWORK_DIR', ROOT . DS . 'lib');
         }
-
-        require_once(\Framework\Core\ROOT . '/vendor/autoload.php');
     }
 
     /**

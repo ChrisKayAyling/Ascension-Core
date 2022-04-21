@@ -1,12 +1,12 @@
 <?php
 
-namespace Framework\HTTP;
+namespace Ascension;
 
 /**
  * Class Request
  * @package Framework\HTTP
  */
-class Request {
+class HTTP {
 
     /**
      * @var array|null
