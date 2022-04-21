@@ -8,9 +8,7 @@ class Core
     private $TwigTemplates = array();
     private $ViewData = array();
 
-    public function __construct(
-
-    ) {
+    public function ascend() {
         // Sanity Check
         $this->__saneSys();
 
@@ -29,7 +27,6 @@ class Core
         // Loader
         $this->__loader();
         $this->__output();
-
     }
 
     public function addDataStorageObject($Name, $Object) {
