@@ -4,6 +4,9 @@ namespace Ascension;
 
 class Core
 {
+    private static $TwigEnvironment;
+    private static $UserTwigEnvironment;
+
     public static $Resources = array();
     private static $TwigTemplates = array();
     private static $ViewData = array();
@@ -19,7 +22,7 @@ class Core
         try {
             self::__loadSettings();
         } catch (\Exception $e) {
-            throw new \Exception("Could not load settings file. Exception given: " . $e->getMessage());
+            throw new \Exception("Error loading system setup and settings, : " . $e->getMessage());
         }
 
         $Request = new HTTP($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
@@ -66,7 +69,6 @@ class Core
      * @return void
      */
     private static function __setupSys() {
-        session_start();
         date_default_timezone_set('Europe/London');
 
         header("Cache-Control: no-store, no-cache, must-revalidate");
@@ -109,6 +111,34 @@ class Core
         if (!defined('FRAMEWORK_DIR')) {
             define('FRAMEWORK_DIR', ROOT . DS . 'lib');
         }
+
+        try {
+            $loader = new \Twig\Loader\FilesystemLoader(ROOT . DS . ".." . DS . 'layout');
+            self::$TwigEnvironment = new \Twig\Environment($loader, array(
+                'debug' => self::$Debug,
+                'cache' => ".." . DS . "cache"
+            ));
+
+            self::$TwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
+
+        } catch (\Exception $e) {
+            throw new \Exception($e);
+        }
+
+        try {
+            $loader = new \Twig\Loader\FilesystemLoader(".." . DS . "templates");
+            self::$UserTwigEnvironment = new \Twig\Environment($loader, array(
+                'debug' => self::$Debug,
+                'cache' => ".." . DS . "cache"
+            ));
+
+            self::$UserTwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
+
+        } catch (\Exception $e) {
+            throw new \Exception($e);
+        }
+
+
     }
 
     /**
@@ -169,7 +199,6 @@ class Core
 
             self::$ViewData['Ascension-Common'] = self::getCommon();
 
-
             if (self::$Debug) d("Ascension Core Debug Output");
             if (self::$Debug) d(self::$Resources);
 
@@ -188,7 +217,24 @@ class Core
             echo json_encode(self::$ViewData,true);
             exit();
         } else {
-            echo "Twig templating not implemented yet.";
+            // Process HTML Templating
+            $contentRendered = "";
+            foreach (self::$TwigTemplates as $viewTemplate) {
+                $contentTemplate = self::$UserTwigEnvironment->load($viewTemplate);
+                $contentData = array(
+                    'data' => self::$ViewData
+                );
+                $contentRendered .= $contentTemplate->render($contentData);
+            };
+
+            $mainTemplate = self::$TwigEnvironment->load('layout.twig');
+            $mainRendered = $mainTemplate->render(
+                array(
+                    'data' => $contentRendered
+                )
+            );
+
+            echo $mainRendered;
             exit();
         }
     }
