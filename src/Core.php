@@ -16,9 +16,6 @@ class Core
         // Sanity Check
         self::__saneSys();
 
-        // Setup System
-        self::__setupSys();
-
         try {
             self::__loadSettings();
         } catch (\Exception $e) {
@@ -26,7 +23,7 @@ class Core
         }
 
         $Request = new HTTP($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
-        self::__injectResource('Request', $Request);
+        self::__injectResource('HTTP', $Request);
 
         // Loader
         self::__loader();
@@ -38,8 +35,8 @@ class Core
      * @param $Object
      * @return bool
      */
-    public function addDataStorageObject($Name, $Object) {
-        if (!isset($this->Resources['DataStorage'][$Name])) {
+    public static function addDataStorageObject($Name, $Object) {
+        if (!isset(self::$Resources['DataStorage'][$Name])) {
             self::$Resources['DataStorage'][$Name] = $Object;
             return TRUE;
         }
@@ -116,6 +113,9 @@ class Core
      * @throws \Exception
      */
     public static function __loadSettings() {
+        // Setup System
+        self::__setupSys();
+
         try {
             $settings = json_encode(
                 file_get_contents(ROOT . DS . "etc" . DS . "config.json")
@@ -134,32 +134,32 @@ class Core
     public static function __loader() {
         try {
 
-            self::$Resources['Request']->route();
+            self::$Resources['HTTP']->route();
 
-            $rStr = ucfirst(self::$Resources['Request']->controller) . "\\Repository\\Repository";
+            $rStr = ucfirst(self::$Resources['HTTP']->controller) . "\\Repository\\Repository";
             if (!class_exists($rStr)) {
                 throw new \Exception($rStr . " Repository class not found");
             } else {
                 try {
-                    $r = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
+                    $r = new $rStr(self::$Resources['DataStorage']['Default'], self::$Resources['Settings']);
                 } catch (\Exception $e) {
                     throw new \Exception($e);
                 }
             }
 
-            $cStr = ucfirst(self::$Resources['Request']->controller) . "\\Controller\\Controller";
+            $cStr = ucfirst(self::$Resources['HTTP']->controller) . "\\Controller\\Controller";
 
             if (!class_exists($cStr)) {
                 throw new \Exception($cStr . "Controller class not found.");
             } else {
-                $c = new $cStr(self::$Resources['Request'], self::$Resources['Settings'], $r);
+                $c = new $cStr(self::$Resources['HTTP'], self::$Resources['Settings'], $r);
             }
 
-            if (self::$Resources['Request']->action == "") {
-                self::$Resources['Request']->action = 'main';
+            if (self::$Resources['HTTP']->action == "") {
+                self::$Resources['HTTP']->action = 'main';
             }
 
-            $a = self::$Resources['Request']->action;
+            $a = self::$Resources['HTTP']->action;
             $c->$a();
 
             self::$TwigTemplates = $c->templates;
@@ -181,7 +181,7 @@ class Core
      */
     private static function __output() {
         // Process JSON
-        if (self::$Resources['Request']->isJson === TRUE) {
+        if (self::$Resources['HTTP']->isJson === TRUE) {
             header("Content-Type: application/json");
             echo json_encode(self::$ViewData,true);
             exit();
@@ -230,7 +230,8 @@ class Core
      * @return false|void
      */
     public static function __injectResource($Name, $Resource) {
-        if (!isset($Name)) {
+
+        if (!isset(self::$Resources[$Name])) {
             self::$Resources[$Name] = $Resource;
             return TRUE;
         }
@@ -243,7 +244,7 @@ class Core
      * @return false|void
      */
     public static function __removeResource($Name) {
-        if (isset($Name)) {
+        if (isset(self::$Resources[$Name])) {
             unset(self::$Resources[$Name]);
             return TRUE;
         }
