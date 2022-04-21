@@ -1,0 +1,36 @@
+{
+  "name": "ascension/core",
+  "type": "library",
+  "description": "A crud framework for loading of resources and output via Twig or JSON",
+  "homepage": "https://www.iohost.co.uk",
+  "license": ["GPL-2.0-only"],
+  "authors": [
+    {
+      "name": "Chris Kay-Ayling",
+      "role": "Developer, maintainer"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/ckay-ayling/ascension/issues",
+    "source": "https://github.com/ckay-ayling/ascension",
+    "docs": "https://www.iohost.co.uk"
+  },
+  "require": {
+    "php": "^5.6 || ^7.0 || ~8.0.0 || ~8.1.0",
+    "twig/twig": "*",
+    "kint-php/kint": "*",
+    "phpunit/phpunit": "^5.5",
+    "matthiasmullie/minify": "*",
+    "mpdf/mpdf":"*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Ascension\\": "src/"
+    }
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "php -r \"chmod('./cache', 0777);\""
+    ]
+  }
+}
