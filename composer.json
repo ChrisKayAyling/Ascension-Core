@@ -30,7 +30,8 @@
   },
   "scripts": {
     "post-install-cmd": [
-      "php -r \"chmod('./cache', 0777);\""
+      "php -r \"chmod('./cache', 0777);\"",
+      "php -r \"mkdir('../cache', 0777);\""
     ]
   }
 }
