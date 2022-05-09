@@ -11,6 +11,7 @@ class Core
     private static $TwigTemplates = array();
     private static $ViewData = array();
     public static $Debug = true;
+    public static $TemplateDevelopmentMode = true;
 
     /* Custom Default Routing */
     public static $defaultRouting = array(
@@ -131,7 +132,7 @@ class Core
         try {
             $loader = new \Twig\Loader\FilesystemLoader(ROOT . DS . ".." . DS . 'layout');
             self::$TwigEnvironment = new \Twig\Environment($loader, array(
-                'debug' => self::$Debug,
+                'debug' => self::$TemplateDevelopmentMode,
                 'cache' => ".." . DS . "cache"
             ));
 
@@ -144,7 +145,7 @@ class Core
         try {
             $loader = new \Twig\Loader\FilesystemLoader(".." . DS . "templates");
             self::$UserTwigEnvironment = new \Twig\Environment($loader, array(
-                'debug' => self::$Debug,
+                'debug' => self::$TemplateDevelopmentMode,
                 'cache' => ".." . DS . "cache"
             ));
 
@@ -243,14 +244,49 @@ class Core
                 $contentRendered .= $contentTemplate->render($contentData);
             };
 
-            $mainTemplate = self::$TwigEnvironment->load('layout.twig');
-            $mainRendered = $mainTemplate->render(
+            if (self::$Debug) d($contentRendered);
+
+            $headerTemplate = self::$UserTwigEnvironment->load("components/header.twig");
+            $headerRendered = $headerTemplate->render(
                 array(
-                    'data' => $contentRendered
+                    'data' => self::$ViewData
                 )
             );
 
-            echo $mainRendered;
+            if (self::$Debug) d($headerRendered);
+
+            $navigationTemplate = self::$UserTwigEnvironment->load("components/navigation.twig");
+            $navigationRendered = $navigationTemplate->render(
+                array(
+                    'data' => self::$ViewData
+                )
+            );
+
+            if (self::$Debug) d($navigationRendered);
+
+            $footerTemplate = self::$UserTwigEnvironment->load("components/footer.twig");
+            $footerRendered = $footerTemplate->render(
+                array(
+                    'data' => self::$ViewData
+                )
+            );
+
+            if (self::$Debug) d($footerRendered);
+
+            $layoutTemplate = self::$TwigEnvironment->load('layout.twig');
+            $layoutRendered = $layoutTemplate->render(
+                array(
+                    'header' => $headerRendered,
+                    'navigation' => $navigationRendered,
+                    'footer' => $footerRendered,
+                    'body' => $contentRendered
+                )
+            );
+
+            if (self::$Debug) d($layoutRendered);
+
+
+            echo $layoutRendered;
             exit();
         }
     }
