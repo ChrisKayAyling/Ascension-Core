@@ -12,6 +12,12 @@ class Core
     private static $ViewData = array();
     public static $Debug = true;
 
+    /* Custom Default Routing */
+    public static $defaultRouting = array(
+        "controller" => "Default",
+        "method" => "main"
+    );
+
     /**
      * @throws \Exception
      */
@@ -26,6 +32,8 @@ class Core
         }
 
         $Request = new HTTP($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
+        $Request->defaultRoute['controller'] = self::$defaultRouting['controller'];
+        $Request->defaultRoute['action'] = self::$defaultRouting['method'];
         self::__injectResource('HTTP', $Request);
 
         // Loader
@@ -34,16 +42,24 @@ class Core
     }
 
     /**
-     * @param $Name
-     * @param $Object
-     * @return bool
+     * Load data storage objects
+     * @return void
+     * @throws \Exception
      */
-    public static function addDataStorageObject($Name, $Object) {
-        if (!isset(self::$Resources['DataStorage'][$Name])) {
-            self::$Resources['DataStorage'][$Name] = $Object;
-            return TRUE;
+    public static function addDataStorageObjects() {
+        try {
+            foreach (scandir(".." . DS . "lib" . DS . "DataStorageObjects") as $obj) {
+                if (strstr($obj, ".php")) {
+                    $classObject = explode(".", $obj);
+                    if (!isset(self::$Resources['DataStorage'][$classObject[0]])) {
+                        $dObject = 'DataStorageObjects\\' . $classObject[0];
+                        self::$Resources['DataStorage'][$classObject[0]] = new $dObject(self::$Resources['Settings']);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
         }
-        return FALSE;
     }
 
     /**
