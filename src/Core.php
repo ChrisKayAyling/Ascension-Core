@@ -6,18 +6,26 @@ class Core
 {
     private static $TwigEnvironment;
     private static $UserTwigEnvironment;
+    private static $TwigCustomTemplating = array(
+        'Header' => NULL,
+        'Navigation' => NULL,
+        'Footer' => NULL
+    );
 
     public static $Resources = array();
     private static $TwigTemplates = array();
     private static $ViewData = array();
-    public static $Debug = true;
-    public static $TemplateDevelopmentMode = true;
 
-    /* Custom Default Routing */
-    public static $defaultRouting = array(
-        "controller" => "Default",
-        "method" => "main"
-    );
+    /**
+     * @var bool Enable/Disable debugging. | Defaults to TRUE
+     */
+    public static $Debug = true;
+
+    /**
+     * @var bool Enable/Disable twig cache. | Defaults to TRUE
+     */
+    public static $DisableTwigCache = true;
+
 
     /**
      * @throws \Exception
@@ -33,8 +41,6 @@ class Core
         }
 
         $Request = new HTTP($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
-        $Request->defaultRoute['controller'] = self::$defaultRouting['controller'];
-        $Request->defaultRoute['action'] = self::$defaultRouting['method'];
         self::__injectResource('HTTP', $Request);
 
         // Loader
@@ -43,24 +49,16 @@ class Core
     }
 
     /**
-     * Load data storage objects
-     * @return void
-     * @throws \Exception
+     * @param $Name
+     * @param $Object
+     * @return bool
      */
-    public static function addDataStorageObjects() {
-        try {
-            foreach (scandir(".." . DS . "lib" . DS . "DataStorageObjects") as $obj) {
-                if (strstr($obj, ".php")) {
-                    $classObject = explode(".", $obj);
-                    if (!isset(self::$Resources['DataStorage'][$classObject[0]])) {
-                        $dObject = 'DataStorageObjects\\' . $classObject[0];
-                        self::$Resources['DataStorage'][$classObject[0]] = new $dObject(self::$Resources['Settings']);
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            throw new \Exception($e->getMessage());
+    public static function addDataStorageObject($Name, $Object) {
+        if (!isset(self::$Resources['DataStorage'][$Name])) {
+            self::$Resources['DataStorage'][$Name] = $Object;
+            return TRUE;
         }
+        return FALSE;
     }
 
     /**
@@ -132,7 +130,7 @@ class Core
         try {
             $loader = new \Twig\Loader\FilesystemLoader(ROOT . DS . ".." . DS . 'layout');
             self::$TwigEnvironment = new \Twig\Environment($loader, array(
-                'debug' => self::$TemplateDevelopmentMode,
+                'debug' => self::$DisableTwigCache,
                 'cache' => ".." . DS . "cache"
             ));
 
@@ -145,7 +143,7 @@ class Core
         try {
             $loader = new \Twig\Loader\FilesystemLoader(".." . DS . "templates");
             self::$UserTwigEnvironment = new \Twig\Environment($loader, array(
-                'debug' => self::$TemplateDevelopmentMode,
+                'debug' => self::$DisableTwigCache,
                 'cache' => ".." . DS . "cache"
             ));
 
@@ -190,7 +188,7 @@ class Core
                 throw new \Exception($rStr . " Repository class not found");
             } else {
                 try {
-                    $r = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
+                    $r = new $rStr(self::$Resources['DataStorage']['Default'], self::$Resources['Settings']);
                 } catch (\Exception $e) {
                     throw new \Exception($e);
                 }
@@ -235,6 +233,14 @@ class Core
             exit();
         } else {
             // Process HTML Templating
+            foreach (self::$TwigCustomTemplating as $customTemplateKey => $customTemplateValue) {
+                if (NULL !== $customTemplateValue) {
+                    $customTemplateResource[$customTemplateKey] = self::$UserTwigEnvironment->load($customTemplateValue);
+                } else {
+                    $customTemplateResource[$customTemplateKey] = self::$TwigEnvironment->load('empty.twig');;
+                }
+            }
+
             $contentRendered = "";
             foreach (self::$TwigTemplates as $viewTemplate) {
                 $contentTemplate = self::$UserTwigEnvironment->load($viewTemplate);
@@ -244,49 +250,17 @@ class Core
                 $contentRendered .= $contentTemplate->render($contentData);
             };
 
-            if (self::$Debug) d($contentRendered);
-
-            $headerTemplate = self::$UserTwigEnvironment->load("components/header.twig");
-            $headerRendered = $headerTemplate->render(
+            $mainTemplate = self::$TwigEnvironment->load('layout.twig');
+            $mainRendered = $mainTemplate->render(
                 array(
-                    'data' => self::$ViewData
+                    'header' => $customTemplateResource['Header']->render(array()),
+                    'navigation' => $customTemplateResource['Navigation']->render(array()),
+                    'body' => $contentRendered,
+                    'footer' => $customTemplateResource['Footer']->render(array())
                 )
             );
 
-            if (self::$Debug) d($headerRendered);
-
-            $navigationTemplate = self::$UserTwigEnvironment->load("components/navigation.twig");
-            $navigationRendered = $navigationTemplate->render(
-                array(
-                    'data' => self::$ViewData
-                )
-            );
-
-            if (self::$Debug) d($navigationRendered);
-
-            $footerTemplate = self::$UserTwigEnvironment->load("components/footer.twig");
-            $footerRendered = $footerTemplate->render(
-                array(
-                    'data' => self::$ViewData
-                )
-            );
-
-            if (self::$Debug) d($footerRendered);
-
-            $layoutTemplate = self::$TwigEnvironment->load('layout.twig');
-            $layoutRendered = $layoutTemplate->render(
-                array(
-                    'header' => $headerRendered,
-                    'navigation' => $navigationRendered,
-                    'footer' => $footerRendered,
-                    'body' => $contentRendered
-                )
-            );
-
-            if (self::$Debug) d($layoutRendered);
-
-
-            echo $layoutRendered;
+            echo $mainRendered;
             exit();
         }
     }
@@ -350,6 +324,17 @@ class Core
         }
         return FALSE;
 
+    }
+
+    /**
+     * addCustomTemplate - Add a custom template by name and path
+     * @param $Name - Header|Navigation|Footer
+     * @param $Path - Relative file path
+     * @return bool
+     */
+    public static function addCustomTemplate($Name, $Path) {
+        self::$TwigCustomTemplating[$Name] = $Path;
+        return true;
     }
 
 }
