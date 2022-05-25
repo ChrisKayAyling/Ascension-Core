@@ -49,16 +49,24 @@ class Core
     }
 
     /**
-     * @param $Name
-     * @param $Object
-     * @return bool
+     * Load data storage objects
+     * @return void
+     * @throws \Exception
      */
-    public static function addDataStorageObject($Name, $Object) {
-        if (!isset(self::$Resources['DataStorage'][$Name])) {
-            self::$Resources['DataStorage'][$Name] = $Object;
-            return TRUE;
+    public static function addDataStorageObjects() {
+        try {
+            foreach (scandir(".." . DS . "lib" . DS . "DataStorageObjects") as $obj) {
+                if (strstr($obj, ".php")) {
+                    $classObject = explode(".", $obj);
+                    if (!isset(self::$Resources['DataStorage'][$classObject[0]])) {
+                        $dObject = 'DataStorageObjects\\' . $classObject[0];
+                        self::$Resources['DataStorage'][$classObject[0]] = new $dObject(self::$Resources['Settings']);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
         }
-        return FALSE;
     }
 
     /**
