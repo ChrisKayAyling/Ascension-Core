@@ -205,7 +205,7 @@ class Core
                 throw new \Exception($rStr . " Repository class not found");
             } else {
                 try {
-                    $r = new $rStr(self::$Resources['DataStorage']['Default'], self::$Resources['Settings']);
+                    $r = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
                 } catch (\Exception $e) {
                     throw new \Exception($e);
                 }
