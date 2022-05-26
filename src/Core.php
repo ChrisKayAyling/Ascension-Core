@@ -64,7 +64,7 @@ class Core
      */
     public static function addDataStorageObjects() {
         try {
-            foreach (scandir(".." . DS . "lib" . DS . "DataStorageObjects") as $obj) {
+            foreach (scandir(ROOT . DS . "lib" . DS . "DataStorageObjects") as $obj) {
                 if (strstr($obj, ".php")) {
                     $classObject = explode(".", $obj);
                     if (!isset(self::$Resources['DataStorage'][$classObject[0]])) {
@@ -132,8 +132,22 @@ class Core
             $_SERVER['REMOTE_ADDR'] = "127.0.0.1";
         }
 
+        if (!defined("COREROOT")) {
+            define("COREROOT", dirname(__FILE__));
+        }
+
         if (!defined('ROOT')) {
-            define('ROOT', dirname(__FILE__));
+            define('ROOT',
+                dirname(
+                    dirname(
+                        dirname(
+                            dirname(
+                                dirname( __FILE__)
+                            )
+                        )
+                    )
+                )
+            );
         }
 
         if (!defined('WEB_ROOT')) {
@@ -145,7 +159,7 @@ class Core
         }
 
         try {
-            $loader = new \Twig\Loader\FilesystemLoader(ROOT . DS . ".." . DS . 'layout');
+            $loader = new \Twig\Loader\FilesystemLoader(COREROOT . DS . ".." . DS . 'layout');
             self::$TwigEnvironment = new \Twig\Environment($loader, array(
                 'debug' => self::$TemplateDevelopmentMode,
                 'cache' => ".." . DS . "cache"
@@ -158,10 +172,10 @@ class Core
         }
 
         try {
-            $loader = new \Twig\Loader\FilesystemLoader(".." . DS . "templates");
+            $loader = new \Twig\Loader\FilesystemLoader(ROOT . DS . "templates");
             self::$UserTwigEnvironment = new \Twig\Environment($loader, array(
                 'debug' => self::$TemplateDevelopmentMode,
-                'cache' => ".." . DS . "cache"
+                'cache' => ROOT . DS . "cache"
             ));
 
             self::$UserTwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
@@ -182,7 +196,7 @@ class Core
 
         try {
             $settings = json_decode(
-                file_get_contents(".." . DS . "etc" . DS . "config.json")
+                file_get_contents(ROOT . DS . "etc" . DS . "config.json")
             );
 
             self::__injectResource("Settings", $settings);
