@@ -270,10 +270,16 @@ class Core
             $mainTemplate = self::$TwigEnvironment->load('layout.twig');
             $mainRendered = $mainTemplate->render(
                 array(
-                    'header' => $customTemplateResource['Header']->render(array()),
-                    'navigation' => $customTemplateResource['Navigation']->render(array()),
+                    'header' => $customTemplateResource['Header']->render(array(
+                        'data' => self::$ViewData
+                    )),
+                    'navigation' => $customTemplateResource['Navigation']->render(array(
+                        'data' => self::$ViewData
+                    )),
                     'body' => $contentRendered,
-                    'footer' => $customTemplateResource['Footer']->render(array())
+                    'footer' => $customTemplateResource['Footer']->render(array(
+                        'data' => self::$ViewData
+                    ))
                 )
             );
 
