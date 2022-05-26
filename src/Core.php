@@ -24,8 +24,14 @@ class Core
     /**
      * @var bool Enable/Disable twig cache. | Defaults to TRUE
      */
-    public static $DisableTwigCache = true;
+    public static $TemplateDevelopmentMode = true;
 
+
+    /* Custom Default Routing */
+    public static $defaultRouting = array(
+        "controller" => "Default",
+        "method" => "main"
+    );
 
     /**
      * @throws \Exception
@@ -41,6 +47,9 @@ class Core
         }
 
         $Request = new HTTP($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
+        $Request->defaultRoute['controller'] = self::$defaultRouting['controller'];
+        $Request->defaultRoute['action'] = self::$defaultRouting['method'];
+
         self::__injectResource('HTTP', $Request);
 
         // Loader
@@ -138,7 +147,7 @@ class Core
         try {
             $loader = new \Twig\Loader\FilesystemLoader(ROOT . DS . ".." . DS . 'layout');
             self::$TwigEnvironment = new \Twig\Environment($loader, array(
-                'debug' => self::$DisableTwigCache,
+                'debug' => self::$TemplateDevelopmentMode,
                 'cache' => ".." . DS . "cache"
             ));
 
@@ -151,7 +160,7 @@ class Core
         try {
             $loader = new \Twig\Loader\FilesystemLoader(".." . DS . "templates");
             self::$UserTwigEnvironment = new \Twig\Environment($loader, array(
-                'debug' => self::$DisableTwigCache,
+                'debug' => self::$TemplateDevelopmentMode,
                 'cache' => ".." . DS . "cache"
             ));
 
@@ -220,7 +229,7 @@ class Core
             self::$TwigTemplates = $c->templates;
             self::$ViewData = $c->data;
 
-            self::$ViewData['Ascension-Common'] = self::getCommon();
+            self::$ViewData['Common'] = self::getCommon();
 
             if (self::$Debug) d("Ascension Core Debug Output");
             if (self::$Debug) d(self::$Resources);
