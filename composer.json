@@ -2,7 +2,7 @@
   "name": "ascension/core",
   "type": "library",
   "description": "A crud framework for loading of resources and output via Twig or JSON",
-  "homepage": "https://www.iohost.co.uk",
+  "homepage": "https://www.iohost.co.uk/framework",
   "license": ["GPL-2.0-only"],
   "authors": [
     {
@@ -19,7 +19,7 @@
     "php": "~8.1.0",
     "twig/twig": "*",
     "kint-php/kint": "*",
-    "phpunit/phpunit": "^8.*",
+    "phpunit/phpunit": "^8.*.*",
     "matthiasmullie/minify": "*",
     "mpdf/mpdf":"*"
   },
