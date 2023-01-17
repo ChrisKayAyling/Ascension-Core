@@ -16,10 +16,10 @@
     "docs": "https://www.iohost.co.uk"
   },
   "require": {
-    "php": "^5.6 || ^7.0 || ~8.0.0 || ~8.1.0",
+    "php": "~8.1.0",
     "twig/twig": "*",
     "kint-php/kint": "*",
-    "phpunit/phpunit": "^5.5",
+    "phpunit/phpunit": "^10.0",
     "matthiasmullie/minify": "*",
     "mpdf/mpdf":"*"
   },

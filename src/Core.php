@@ -214,9 +214,9 @@ class Core
 
             self::$Resources['HTTP']->route();
 
-            $rStr = ucfirst(self::$Resources['HTTP']->controller) . "\\Repository\\Repository";
+            $rStr = ucfirst(self::$Resources['HTTP']->controller) . "\\Interfaces\\IRepository";
             if (!class_exists($rStr)) {
-                throw new \Exception($rStr . " Repository class not found");
+                throw new \Exception($rStr . " IRepository class not found");
             } else {
                 try {
                     $r = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
