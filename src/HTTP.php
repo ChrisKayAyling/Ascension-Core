@@ -129,7 +129,7 @@ class HTTP {
     public function route() {
         $this->extractQuery();
 
-        $this->extractParam(); // shift by one for sub directory
+        //$this->extractParam(); // shift by one for sub directory
         $this->extractController();
         $this->extractAction();
         $this->extractId();
