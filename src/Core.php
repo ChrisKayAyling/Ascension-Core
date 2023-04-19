@@ -83,12 +83,16 @@ class Core
      */
     private static function __saneSys() {
         try {
-            if (!function_exists("curl_init")) {
-                $error = "PHP Extension curl not installed.";
+            if (!extension_loaded('curl')) {
+                $error = "PHP Extension curl not enabled.";
             }
 
-            if (!function_exists("simplexml_load_file")) {
-                $error = "PHP Extension simplexml not installed.";
+            if (!extension_loaded("simplexml")) {
+                $error = "PHP Extension simplexml not enabled.";
+            }
+
+            if (!extension_loaded("sqlite3")) {
+                $error = "PHP Extension sqlite3 not enabled.";
             }
 
         } catch (\Exception $e) {
