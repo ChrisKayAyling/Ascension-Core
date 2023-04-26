@@ -64,13 +64,10 @@ class Core
      */
     public static function addDataStorageObjects() {
         try {
-            foreach (scandir(ROOT . DS . "lib" . DS . "DataStorageObjects") as $obj) {
-                if (strstr($obj, ".php")) {
-                    $classObject = explode(".", $obj);
-                    if (!isset(self::$Resources['DataStorage'][$classObject[0]])) {
-                        $dObject = 'DataStorageObjects\\' . $classObject[0];
-                        self::$Resources['DataStorage'][$classObject[0]] = new $dObject(self::$Resources['Settings']);
-                    }
+            foreach (self::$Resources['Settings']->DataConnectors as $instance) {
+                $dObject = "DataStorageObjects\\" . $instance->Connector;
+                if (class_exists($dObject)) {
+                    self::$Resources['DataStorage'][$instance->Database] = new $dObject($instance);
                 }
             }
         } catch (\Exception $e) {
@@ -324,7 +321,9 @@ class Core
         $data['Server']['SESSION_ID']             = session_id();
 
         // Sessions
-        $data['Session']                          = $_SESSION;
+        if (isset($_SESSION)) {
+            $data['Session'] = $_SESSION;
+        }
 
         // Day Of the Week
         $data['General']['DayShort'] = date('D');
