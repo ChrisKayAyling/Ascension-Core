@@ -2,389 +2,299 @@
 
 namespace Ascension;
 
-class Core
-{
-    private static $TwigEnvironment;
-    private static $UserTwigEnvironment;
-    private static $TwigCustomTemplating = array(
-        'Header' => NULL,
-        'Navigation' => NULL,
-        'Footer' => NULL
+/**
+ * Class Request
+ * @package Framework\HTTP
+ */
+class HTTP {
+
+    /**
+     * @var array|null
+     */
+    public $Server = NULL;
+
+    /**
+     * @var array|null
+     */
+    public $Files = NULL;
+
+    /**
+     * @var null
+     */
+    public $data = NULL;
+
+    /**
+     * @var null
+     */
+    public $query = NULL;
+
+    /**
+     * @var null
+     */
+    public $xml = NULL;
+
+    /**
+     * @var null
+     */
+    public $isJson = NULL;
+
+    /**
+     * @var null
+     */
+    public $controller = NULL;
+
+    /**
+     * @var null
+     */
+    public $action = NULL;
+
+    /**
+     * @var null
+     */
+    public $id = NULL;
+
+    /**
+     * @var array
+     */
+    public $filters = array();
+
+
+    /**
+     * @var string $requestMethod - POST,GET,DELETE or PATCH
+     */
+    public $requestMethod = "";
+
+    /**
+     * @var array
+     */
+    public $defaultRoute = array(
+        'controller' => 'API',
+        'action' => 'main',
+        'id' => ""
     );
 
-    public static $Resources = array();
-    private static $TwigTemplates = array();
-    private static $ViewData = array();
-
     /**
-     * @var bool Enable/Disable debugging. | Defaults to TRUE
+     * Request constructor.
+     * @param array $Server
+     * @param array $Post
+     * @param string $PhpInput
+     * @param array $Files
+     * @param array $Request
      */
-    public static $Debug = true;
-
-    /**
-     * @var bool Enable/Disable twig cache. | Defaults to TRUE
-     */
-    public static $TemplateDevelopmentMode = true;
-
-
-    /* Custom Default Routing */
-    public static $defaultRouting = array(
-        "controller" => "Default",
-        "method" => "main"
-    );
-
-    /**
-     * @throws \Exception
-     */
-    public static function ascend() {
-        // Sanity Check
-        self::__saneSys();
-
-        try {
-            self::__loadSettings();
-        } catch (\Exception $e) {
-            throw new \Exception("Error loading system setup and settings, : " . $e->getMessage());
-        }
-
-        $Request = new HTTP($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
-        $Request->defaultRoute['controller'] = self::$defaultRouting['controller'];
-        $Request->defaultRoute['action'] = self::$defaultRouting['method'];
-
-        self::__injectResource('HTTP', $Request);
-
-        // Loader
-        self::__loader();
-        self::__output();
+    public function __construct(
+        $Server = array(),
+        $Post = array(),
+        $PhpInput = "",
+        $Files = array(),
+        $Request = array()
+    ) {
+        $this->Server = $Server;
+        $this->processPostData($Post, $PhpInput);
+        $request = array_merge(array('xml' => NULL), $Request);
+        $this->xml = $request['xml'];
+        $this->Files = $Files;
     }
 
     /**
-     * Load data storage objects
-     * @return void
-     * @throws \Exception
+     * @param array $Post
+     * @param $PhpInput
      */
-    public static function addDataStorageObjects() {
-        try {
-            foreach (scandir(ROOT . DS . "lib" . DS . "DataStorageObjects") as $obj) {
-                if (strstr($obj, ".php")) {
-                    $classObject = explode(".", $obj);
-                    if (!isset(self::$Resources['DataStorage'][$classObject[0]])) {
-                        $dObject = 'DataStorageObjects\\' . $classObject[0];
-                        self::$Resources['DataStorage'][$classObject[0]] = new $dObject(self::$Resources['Settings']);
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            throw new \Exception($e->getMessage());
-        }
-    }
-
-    /**
-     * @throws \Exception
-     */
-    private static function __saneSys() {
-        try {
-            if (!extension_loaded('curl')) {
-                $error = "PHP Extension curl not enabled.";
-            }
-
-            if (!extension_loaded("simplexml")) {
-                $error = "PHP Extension simplexml not enabled.";
-            }
-
-            if (!extension_loaded("sqlite3")) {
-                $error = "PHP Extension sqlite3 not enabled.";
-            }
-
-        } catch (\Exception $e) {
-            throw new \Exception($error);
-        }
-
-    }
-
-    /**
-     * @return void
-     */
-    private static function __setupSys() {
-        date_default_timezone_set('Europe/London');
-
-        header("Cache-Control: no-store, no-cache, must-revalidate");
-        header("Cache-Control: post-check=0, pre-check=0", false);
-        header("Pragma: no-cache");
-
-        ini_set("display_errors", 0);
-        ini_set('error_reporting', E_ALL);
-
-        if (!defined('DOCUMENT_ROOT')) {
-            define('DOCUMENT_ROOT', $_SERVER['DOCUMENT_ROOT']);
-        }
-
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            if (!defined('DS')) {
-                define("DS", "\\");
-            }
+    public function processPostData($Post = array(), $PhpInput) {
+        if ($this->isJson()) {
+            $this->data = json_decode($PhpInput, TRUE);
         } else {
-            if (!defined('DS')) {
-                define("DS", "/");
-            }
-        }
-
-        if (isset($_SERVER['SERVER_ADDR'])) {
-            define('SERVER_ADDR', $_SERVER['SERVER_ADDR']);
-        } else {
-            $_SERVER['SERVER_ADDR'] = "127.0.0.1";
-        }
-
-        if (isset($_SERVER['REMOTE_ADDR'])) {
-            if (!defined('REMOTE_ADDR')) {
-                define('REMOTE_ADDR', $_SERVER['REMOTE_ADDR']);
-            }
-        } else {
-            $_SERVER['REMOTE_ADDR'] = "127.0.0.1";
-        }
-
-        if (!defined("COREROOT")) {
-            define("COREROOT", dirname(__FILE__));
-        }
-
-        if (!defined('ROOT')) {
-            define('ROOT',
-                dirname(
-                    dirname(
-                        dirname(
-                            dirname(
-                                dirname( __FILE__)
-                            )
-                        )
-                    )
-                )
-            );
-        }
-
-        if (!defined('WEB_ROOT')) {
-            define('WEB_ROOT', ROOT . DS . 'public_html');
-        }
-
-        if (!defined('FRAMEWORK_DIR')) {
-            define('FRAMEWORK_DIR', ROOT . DS . 'lib');
-        }
-
-        try {
-            $loader = new \Twig\Loader\FilesystemLoader(COREROOT . DS . ".." . DS . 'layout');
-            self::$TwigEnvironment = new \Twig\Environment($loader, array(
-                'debug' => self::$TemplateDevelopmentMode,
-                'cache' => ".." . DS . "cache"
-            ));
-
-            self::$TwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
-
-        } catch (\Exception $e) {
-            throw new \Exception($e);
-        }
-
-        try {
-            $loader = new \Twig\Loader\FilesystemLoader(ROOT . DS . "templates");
-            self::$UserTwigEnvironment = new \Twig\Environment($loader, array(
-                'debug' => self::$TemplateDevelopmentMode,
-                'cache' => ROOT . DS . "cache"
-            ));
-
-            self::$UserTwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
-
-        } catch (\Exception $e) {
-            throw new \Exception($e);
-        }
-
-
-    }
-
-    /**
-     * @throws \Exception
-     */
-    public static function __loadSettings() {
-        // Setup System
-        self::__setupSys();
-
-        try {
-            $settings = json_decode(
-                file_get_contents(ROOT . DS . "etc" . DS . "config.json")
-            );
-
-            self::__injectResource("Settings", $settings);
-
-        } catch (\Exception $e) {
-            throw new \Exception($e->getMessage());
+            $this->data = $Post;
         }
     }
 
     /**
-     * @throws \Exception
+     * @return bool
      */
-    public static function __loader() {
-        try {
-
-            self::$Resources['HTTP']->route();
-
-
-            $rStr = ucfirst(self::$Resources['HTTP']->controller) . "\\Repository\\Repository";
-            if (!class_exists($rStr)) {
-                throw new \Exception($rStr . " IRepository class not found");
-            } else {
-                try {
-                    $r = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
-                } catch (\Exception $e) {
-                    throw new \Exception($e);
-                }
-            }
-
-            $cStr = ucfirst(self::$Resources['HTTP']->controller) . "\\Controller\\Controller";
-
-            if (!class_exists($cStr)) {
-                throw new \Exception($cStr . "Controller class not found.");
-            } else {
-                $c = new $cStr(self::$Resources['HTTP'], self::$Resources['Settings'], $r);
-            }
-
-            if (self::$Resources['HTTP']->action == "") {
-                self::$Resources['HTTP']->action = 'main';
-            }
-
-            $a = self::$Resources['HTTP']->action;
-            $c->$a();
-
-            self::$TwigTemplates = $c->templates;
-            self::$ViewData = $c->data;
-
-            self::$ViewData['Common'] = self::getCommon();
-
-            if (self::$Debug) d("Ascension Core Debug Output");
-            if (self::$Debug) d(self::$Resources);
-
-        } catch (\Exception $e) {
-            throw new \Exception($e);
+    protected function isJson() {
+        if (isset($this->Server['CONTENT_TYPE']) && strpos($this->Server['CONTENT_TYPE'], 'application/json') === 0) {
+            $this->isJson = TRUE;
+            return TRUE;
+        } else if (strstr(isset($this->Server['REQUEST_URI']), 'angular.callbacks')) {
+            $this->isJson = TRUE;
+            return TRUE;
+        } else {
+            $this->isJson = FALSE;
+            return FALSE;
         }
     }
 
     /**
-     * @return void
+     * route
      */
-    private static function __output() {
-        // Process JSON
-        if (self::$Resources['HTTP']->isJson === TRUE) {
-            header("Content-Type: application/json");
-            echo json_encode(self::$ViewData,true);
-            exit();
-        } else {
-            // Process HTML Templating
-            foreach (self::$TwigCustomTemplating as $customTemplateKey => $customTemplateValue) {
-                if (NULL !== $customTemplateValue) {
-                    $customTemplateResource[$customTemplateKey] = self::$UserTwigEnvironment->load($customTemplateValue);
-                } else {
-                    $customTemplateResource[$customTemplateKey] = self::$TwigEnvironment->load('empty.twig');;
-                }
-            }
+    public function route() {
+        $this->extractQuery();
 
-            $contentRendered = "";
-            foreach (self::$TwigTemplates as $viewTemplate) {
-                $contentTemplate = self::$UserTwigEnvironment->load($viewTemplate);
-                $contentData = array(
-                    'data' => self::$ViewData
-                );
-                $contentRendered .= $contentTemplate->render($contentData);
-            };
+        //$this->extractParam(); // shift by one for sub directory
+        $this->extractController();
+        $this->extractAction();
+        $this->extractId();
 
-            $mainTemplate = self::$TwigEnvironment->load('layout.twig');
-            $mainRendered = $mainTemplate->render(
-                array(
-                    'header' => $customTemplateResource['Header']->render(array(
-                        'data' => self::$ViewData
-                    )),
-                    'navigation' => $customTemplateResource['Navigation']->render(array(
-                        'data' => self::$ViewData
-                    )),
-                    'body' => $contentRendered,
-                    'footer' => $customTemplateResource['Footer']->render(array(
-                        'data' => self::$ViewData
-                    ))
-                )
-            );
-
-            echo $mainRendered;
-            exit();
+        if (empty($this->controller)) {
+            $this->controller   = $this->defaultRoute['controller'];
+            $this->action       = $this->defaultRoute['action'];
+            $this->id           = $this->defaultRoute['id'];
         }
+
+        if (empty($this->action)) {
+            $this->action = 'main';
+        }
+
+        $this->extractFilters();
+    }
+
+    /**
+     * extractFilters
+     */
+    protected function extractFilters() {
+        foreach ($this->query as $param) {
+            if (strpos($param, ':')) {
+                $param = explode(':', $param, 2);
+                $param[0] = preg_replace('/[^a-zA-Z_-]/', '', $param[0]);
+                $this->filters[$param[0]] = $param[1];
+            }
+        }
+    }
+
+    /**
+     * @throws \Framework\Exception\PageNotFoundException
+     */
+    protected function extractController() {
+        $query =            $this->query;
+        $controller =       $this->extractParam();
+        $requestmethod =    $this->extractRequestMethod();
+
+        if (!empty($controller) && is_dir(WEB_ROOT . DS . 'lib' . $controller)) {
+            throw new \Framework\Exception\PageNotFoundException;
+        }
+
+        if ('Login' == $controller || 'Logout' == $controller) {
+            $this->controller = 'AuthController';
+            $this->action = strtolower($controller);
+            $this->query = array();
+            return;
+        }
+
+        $this->requestMethod = $requestmethod;
+        $this->controller = $controller;
+    }
+
+    /**
+     * extractAction
+     */
+    protected function extractAction() {
+        if (empty($this->action)) {
+            $action = $this->extractParam();
+
+            if ($action) {
+                $action = preg_replace('/[^a-zA-Z_-]/', "",$action);
+                $this->action = $action;
+            }
+        }
+
+    }
+
+    /**
+     * extractId
+     */
+    protected function extractId() {
+        $this->id = $this->extractParam();
+
+        if (!empty($this->id) && is_numeric($this->id)) {
+            //throw new \Framework\Exception\IdNotValidException($this->id);
+        }
+
+    }
+
+    /**
+     * @return array|bool|mixed
+     */
+    protected function extractParam() {
+        $param = array_shift($this->query);
+        if (strpos($param, ':')) {
+            array_unshift($this->query, $param);
+            return FALSE;
+        }
+
+        $param = explode("?", $param);
+        $param = $param[0];
+        return $param;
+    }
+
+    /**
+     * @return string
+     */
+    protected function extractRequestMethod() {
+        $requestMethod = 'get';
+
+        if (isset($_SERVER['REQUEST_METHOD']) && !empty($_SERVER['REQUEST_METHOD'])) {
+            $requestMethod = strtolower($_SERVER['REQUEST_METHOD']);
+        }
+
+        return $requestMethod;
+    }
+
+    /**
+     * @return array|null
+     */
+    protected function extractQuery() {
+        $this->query = $this->query();
+        return $this->query;
     }
 
     /**
      * @return array
      */
-    private static function getCommon() {
-        $data = array();
-
-        // Server
-        $data['Server']['SERVER_ADDR']            = $_SERVER['SERVER_ADDR'];
-        $data['Server']['REMOTE_ADDR']            = $_SERVER['REMOTE_ADDR'];
-        $data['Server']['HTTP_USER_AGENT']        = $_SERVER['HTTP_USER_AGENT'];
-
-        if (isset($_SERVER['HTTPS'])) {
-            $data['Server']['HTTPS'] = $_SERVER['HTTPS'];
+    protected function query() {
+        $scriptPath =  $this->scriptPath();
+        $redirect = $this->redirect();
+        if (isset($redirect[0]) && empty($redirect[0])) {
+            array_shift($redirect);
         }
 
-        $data['Server']['SESSION_ID']             = session_id();
-
-        // Sessions
-        if (isset($_SESSION)) {
-            $data['Session'] = $_SESSION;
-        }
-
-        // Day Of the Week
-        $data['General']['DayShort'] = date('D');
-        $data['General']['Day'] = date('l');
-        $data['General']['DayNumber'] = date('d');
-        $data['General']['MonthShort'] = date('M');
-        $data['General']['MontNumber'] = date('m');
-        $data['General']['Year'] = date("Y");
-
-        return $data;
-    }
-
-
-    /**
-     * Resource Injector
-     * @param $Name
-     * @param $Resource
-     * @return false|void
-     */
-    public static function __injectResource($Name, $Resource) {
-
-        if (!isset(self::$Resources[$Name])) {
-            self::$Resources[$Name] = $Resource;
-            return TRUE;
-        }
-        return FALSE;
+        return array_merge(
+            array_diff($scriptPath, $redirect),
+            array_diff($redirect, $scriptPath)
+        );
     }
 
     /**
-     * Resource Remover
-     * @param $Name
-     * @return false|void
+     * @return array
      */
-    public static function __removeResource($Name) {
-        if (isset(self::$Resources[$Name])) {
-            unset(self::$Resources[$Name]);
-            return TRUE;
-        }
-        return FALSE;
+    protected function redirect() {
+        $redirect = array();
 
+        if (!empty($this->Server['REDIRECT_URL'])) {
+            $redirect = explode('/', $this->Server['REDIRECT_URL']);
+        }
+
+        return $redirect;
     }
 
     /**
-     * addCustomTemplate - Add a custom template by name and path
-     * @param $Name - Header|Navigation|Footer
-     * @param $Path - Relative file path
-     * @return bool
+     * @return array
      */
-    public static function addCustomTemplate($Name, $Path) {
-        self::$TwigCustomTemplating[$Name] = $Path;
-        return true;
+    protected function scriptPath() {
+        $scriptPath = array();
+        if (!empty($this->Server['REQUEST_URI'])) {
+            $scriptPath = explode('/', $this->Server['REQUEST_URI']);
+
+            $scriptPath = array_values($scriptPath);
+
+            if (isset($scriptPath[0]) && empty($scriptPath[0])) {
+                array_shift($scriptPath);
+            }
+
+            if($scriptPath[0] == 'index.php') {
+                array_pop($scriptPath);
+            }
+        }
+
+        return $scriptPath;
     }
 
 }
