@@ -4,7 +4,7 @@ namespace Ascension;
 
 /**
  * Class Request
- * @package Framework\HTTP
+ * @package Framework\HTTP.
  */
 class HTTP {
 
