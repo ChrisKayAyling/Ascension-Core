@@ -21,7 +21,8 @@
     "kint-php/kint": "*",
     "phpunit/phpunit": "*",
     "matthiasmullie/minify": "*",
-    "mpdf/mpdf":"*"
+    "mpdf/mpdf":"*",
+    "ext-sqlite3": "*"
   },
   "autoload": {
     "psr-4": {

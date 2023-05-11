@@ -205,6 +205,25 @@ class Core
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage());
         }
+
+        // Load settings optionally from CMS db if present.
+        try {
+            if (extension_loaded("SQLite3")) {
+                if (file_exists(ROOT . DS . "etc" . DS . "db.db")) {
+                    $handle = new \SQLite3(ROOT . DS . "etc" . DS . "db.db");
+                    $result = $handle->query("SELECT * FROM settings");
+                    $rows = array();
+                    if ($result !== FALSE) {
+                        while ($row = $result->fetchArray()) {
+                            $rows[] = $row;
+                        }
+                        self::__injectResource("AppSettings", $rows);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            throw new \Exception("Core: Application settings could not be loaded." . $e->getMessage());
+        }
     }
 
     /**
