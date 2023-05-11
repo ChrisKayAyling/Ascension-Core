@@ -213,11 +213,14 @@ class Core
                     $handle = new \SQLite3(ROOT . DS . "etc" . DS . "db.db");
                     $result = $handle->query("SELECT * FROM settings");
                     $rows = array();
-                    if ($result !== FALSE) {
+                    if ($result !== false) {
                         while ($row = $result->fetchArray()) {
-                            $rows[] = $row;
+                            $rows[$row['Environment']][$row['Name']] = (object) array(
+                                "Value" => $row['Value'],
+                                "Group" => $row['Group']
+                            );
                         }
-                        self::__injectResource("AppSettings", $rows);
+                        self::__injectResource("AppSettings", (object) $rows);
                     }
                 }
             }
