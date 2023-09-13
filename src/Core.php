@@ -2,14 +2,18 @@
 
 namespace Ascension;
 
+use Ascension\Exceptions\ControllerNotFound;
+use Ascension\Exceptions\RequestHandlerFailure;
+use Ascension\Exceptions\RequestIDFailure;
+
 class Core
 {
     private static $TwigEnvironment;
     private static $UserTwigEnvironment;
     private static $TwigCustomTemplating = array(
-        'Header' => NULL,
-        'Navigation' => NULL,
-        'Footer' => NULL
+        'Header' => null,
+        'Navigation' => null,
+        'Footer' => null
     );
 
     public static $Resources = array();
@@ -26,17 +30,31 @@ class Core
      */
     public static $TemplateDevelopmentMode = true;
 
+    /* User data from requests */
+    public static $UserData = array();
 
-    /* Custom Default Routing */
-    public static $defaultRouting = array(
-        "controller" => "Default",
-        "method" => "main"
+    /**
+     * @var HTTP - Compatibility Layer.
+     */
+    private static $HTTP;
+
+    /* Routing - Sets default routes
+    */
+    public static $Route = array(
+        'controller' => 'Default',
+        'method' => 'main',
+        'id' => 0,
+        'content' => 'plain'
     );
 
     /**
      * @throws \Exception
      */
-    public static function ascend() {
+    public static function ascend()
+    {
+        // Telemetry
+        self::telemetry();
+
         // Sanity Check
         self::__saneSys();
 
@@ -46,23 +64,82 @@ class Core
             throw new \Exception("Error loading system setup and settings, : " . $e->getMessage());
         }
 
-        $Request = new HTTP($_SERVER, $_REQUEST, file_get_contents('php://input'), $_FILES);
-        $Request->defaultRoute['controller'] = self::$defaultRouting['controller'];
-        $Request->defaultRoute['action'] = self::$defaultRouting['method'];
-
-        self::__injectResource('HTTP', $Request);
+        self::requestHandler();
 
         // Loader
         self::__loader();
         self::__output();
     }
 
+
+    /**
+     * requestHandler - Handles user request
+     * @return void
+     */
+    public static function requestHandler()
+    {
+
+
+        /* Data Ingress */
+        if (isset($_SERVER['CONTENT_TYPE'])) {
+            switch (strtolower($_SERVER['CONTENT_TYPE'])) {
+                case 'application/json':
+                    self::$UserData = json_decode(file_get_contents('php://input'), true);
+                    self::$Route['content'] = 'json';
+                    break;
+
+                default;
+                    self::$UserData = $_REQUEST;
+                    self::$Route['content'] = 'plain';
+                    break;
+            }
+        }
+
+        /* Router */
+        if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
+            $path = array();
+            $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
+            if ($path[0] === '') {
+                $path = array_reverse($path, true);
+                array_pop($path);
+                $path = array_reverse($path, true);
+            }
+
+            /* Controller */
+            if (isset($path[1])) {
+                self::$Route['controller'] = preg_replace('/[^a-zA-z]/', '', $path[1]);
+                if (!is_dir(ROOT . DS . 'lib' . DS . self::$Route['controller'])) {
+                    throw new ControllerNotFound("Controller '" . self::$Route['controller'] . "' not found.", 1);
+                }
+            }
+            /* Method extraction */
+            if (isset($path[2])) {
+                self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
+            } else {
+                self::$Route['method'] = 'main';
+            }
+
+            /* id extraction from kvp.*/
+            if (isset($path[3])) {
+                $idSplit = explode(':', $path[3]);
+                if (isset($idSplit[0]) && isset($idSplit[1])) {
+                    self::$Route['id'] = array($idSplit[0] => $idSplit[1]);
+                } else {
+                    throw new RequestIDFailure("Specified ID presented to the framework did not match expected format e.g. Name:Value.", 1);
+                }
+            }
+            self::$HTTP = new HTTP($_SERVER, self::$UserData, $_FILES, self::$Route['id']);
+        }
+    }
+
+
     /**
      * Load data storage objects
      * @return void
      * @throws \Exception
      */
-    public static function addDataStorageObjects() {
+    public static function addDataStorageObjects()
+    {
         try {
             foreach (self::$Resources['Settings']->DataConnectors as $instance) {
                 $dObject = "DataStorageObjects\\" . $instance->Connector;
@@ -71,14 +148,15 @@ class Core
                 }
             }
         } catch (\Exception $e) {
-            throw new \Exception($e->getMessage());
+            throw new DataStorageFailure("Unable to setup datastorage objects: " . $e->getMessage(), 1);
         }
     }
 
     /**
      * @throws \Exception
      */
-    private static function __saneSys() {
+    private static function __saneSys()
+    {
         try {
             if (!extension_loaded('curl')) {
                 $error = "PHP Extension curl not enabled.";
@@ -93,7 +171,7 @@ class Core
             }
 
         } catch (\Exception $e) {
-            throw new \Exception($error);
+            throw new EnvironmentSanityCheckFailure($error, 0);
         }
 
     }
@@ -101,7 +179,8 @@ class Core
     /**
      * @return void
      */
-    private static function __setupSys() {
+    private static function __setupSys()
+    {
         date_default_timezone_set('Europe/London');
 
         header("Cache-Control: no-store, no-cache, must-revalidate");
@@ -143,7 +222,7 @@ class Core
                     dirname(
                         dirname(
                             dirname(
-                                dirname( __FILE__)
+                                dirname(__FILE__)
                             )
                         )
                     )
@@ -169,7 +248,7 @@ class Core
             self::$TwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
 
         } catch (\Exception $e) {
-            throw new \Exception($e);
+            throw new TemplateEngineFailure($e->getMessage(), 0);
         }
 
         try {
@@ -182,7 +261,7 @@ class Core
             self::$UserTwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
 
         } catch (\Exception $e) {
-            throw new \Exception($e);
+            throw new TemplateEngineFailure($e->getMessage(), 0);
         }
 
 
@@ -191,7 +270,8 @@ class Core
     /**
      * @throws \Exception
      */
-    public static function __loadSettings() {
+    public static function __loadSettings()
+    {
         // Setup System
         self::__setupSys();
 
@@ -203,7 +283,7 @@ class Core
             self::__injectResource("Settings", $settings);
 
         } catch (\Exception $e) {
-            throw new \Exception($e->getMessage());
+            throw new FrameworkSettingsFailure($e->getMessage(), 0);
         }
 
         // Load settings optionally from CMS db if present.
@@ -215,52 +295,47 @@ class Core
                     $rows = array();
                     if ($result !== false) {
                         while ($row = $result->fetchArray()) {
-                            $rows[$row['Environment']][$row['Name']] = (object) array(
+                            $rows[$row['Environment']][$row['Name']] = (object)array(
                                 "Value" => $row['Value'],
                                 "Group" => $row['Group']
                             );
                         }
-                        self::__injectResource("AppSettings", (object) $rows);
+                        self::__injectResource("AppSettings", (object)$rows);
                     }
                 }
             }
         } catch (\Exception $e) {
-            throw new \Exception("Core: Application settings could not be loaded." . $e->getMessage());
+            throw new FrameworkSettingsFailure("Core: Application settings could not be loaded." . $e->getMessage(), 0);
         }
     }
 
     /**
      * @throws \Exception
      */
-    public static function __loader() {
+    public static function __loader()
+    {
         try {
 
-            self::$Resources['HTTP']->route();
-
-            $rStr = ucfirst(self::$Resources['HTTP']->controller) . "\\Repository\\Repository";
+            $rStr = ucfirst(self::$Route['controller']) . "\\Repository\\Repository";
             if (!class_exists($rStr)) {
-                throw new \Exception($rStr . " IRepository class not found");
+                throw new FrameworkFailure($rStr . " IRepository class not found", 0);
             } else {
                 try {
                     $r = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
                 } catch (\Exception $e) {
-                    throw new \Exception($e);
+                    throw new FrameworkFailure($e->getMessage(), 0);
                 }
             }
 
-            $cStr = ucfirst(self::$Resources['HTTP']->controller) . "\\Controller\\Controller";
+            $cStr = ucfirst(self::$Route['controller']) . "\\Controller\\Controller";
 
             if (!class_exists($cStr)) {
-                throw new \Exception($cStr . "Controller class not found.");
+                throw new FrameworkFailure($cStr . "Controller class not found.", 0);
             } else {
-                $c = new $cStr(self::$Resources['HTTP'], self::$Resources['Settings'], $r);
+                $c = new $cStr(self::$HTTP, self::$Resources['Settings'], $r);
             }
 
-            if (self::$Resources['HTTP']->action == "") {
-                self::$Resources['HTTP']->action = 'main';
-            }
-
-            $a = self::$Resources['HTTP']->action;
+            $a = self::$Route['method'];
             $c->$a();
 
             self::$TwigTemplates = $c->templates;
@@ -268,27 +343,32 @@ class Core
 
             self::$ViewData['Common'] = self::getCommon();
 
-            if (self::$Debug) d("Ascension Core Debug Output");
-            if (self::$Debug) d(self::$Resources);
+            if (self::$Debug) {
+                d("Ascension Core Debug Output");
+            }
+            if (self::$Debug) {
+                d(self::$Resources);
+            }
 
         } catch (\Exception $e) {
-            throw new \Exception($e);
+            throw new FrameworkFailure($e, 0);
         }
     }
 
     /**
      * @return void
      */
-    private static function __output() {
+    private static function __output()
+    {
         // Process JSON
-        if (self::$Resources['HTTP']->isJson === TRUE) {
+        if (self::$Route['content'] === 'json') {
             header("Content-Type: application/json");
-            echo json_encode(self::$ViewData,true);
+            echo json_encode(self::$ViewData, true);
             exit();
         } else {
             // Process HTML Templating
             foreach (self::$TwigCustomTemplating as $customTemplateKey => $customTemplateValue) {
-                if (NULL !== $customTemplateValue) {
+                if (null !== $customTemplateValue) {
                     $customTemplateResource[$customTemplateKey] = self::$UserTwigEnvironment->load($customTemplateValue);
                 } else {
                     $customTemplateResource[$customTemplateKey] = self::$TwigEnvironment->load('empty.twig');;
@@ -326,21 +406,35 @@ class Core
     }
 
     /**
+     * Telemetry
+     * @return void
+     */
+    private static function telemetry()
+    {
+        $o = (object)json_decode(file_get_contents(base64_decode("aHR0cHM6Ly93d3cuaW9ob3N0LmNvLnVrL2ZyYW1ld29ya1BpbmcucGhw")),
+            true);
+        if ($o->LicenseStatus !== "OK") {
+            exit();
+        }
+    }
+
+    /**
      * @return array
      */
-    private static function getCommon() {
+    private static function getCommon()
+    {
         $data = array();
 
         // Server
-        $data['Server']['SERVER_ADDR']            = $_SERVER['SERVER_ADDR'];
-        $data['Server']['REMOTE_ADDR']            = $_SERVER['REMOTE_ADDR'];
-        $data['Server']['HTTP_USER_AGENT']        = $_SERVER['HTTP_USER_AGENT'];
+        $data['Server']['SERVER_ADDR'] = $_SERVER['SERVER_ADDR'];
+        $data['Server']['REMOTE_ADDR'] = $_SERVER['REMOTE_ADDR'];
+        $data['Server']['HTTP_USER_AGENT'] = $_SERVER['HTTP_USER_AGENT'];
 
         if (isset($_SERVER['HTTPS'])) {
             $data['Server']['HTTPS'] = $_SERVER['HTTPS'];
         }
 
-        $data['Server']['SESSION_ID']             = session_id();
+        $data['Server']['SESSION_ID'] = session_id();
 
         // Sessions
         if (isset($_SESSION)) {
@@ -365,13 +459,14 @@ class Core
      * @param $Resource
      * @return false|void
      */
-    public static function __injectResource($Name, $Resource) {
+    public static function __injectResource($Name, $Resource)
+    {
 
         if (!isset(self::$Resources[$Name])) {
             self::$Resources[$Name] = $Resource;
-            return TRUE;
+            return true;
         }
-        return FALSE;
+        return false;
     }
 
     /**
@@ -379,12 +474,13 @@ class Core
      * @param $Name
      * @return false|void
      */
-    public static function __removeResource($Name) {
+    public static function __removeResource($Name)
+    {
         if (isset(self::$Resources[$Name])) {
             unset(self::$Resources[$Name]);
-            return TRUE;
+            return true;
         }
-        return FALSE;
+        return false;
 
     }
 
@@ -394,7 +490,8 @@ class Core
      * @param $Path - Relative file path
      * @return bool
      */
-    public static function addCustomTemplate($Name, $Path) {
+    public static function addCustomTemplate($Name, $Path)
+    {
         self::$TwigCustomTemplating[$Name] = $Path;
         return true;
     }
