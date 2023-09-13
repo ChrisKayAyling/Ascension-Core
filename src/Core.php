@@ -3,8 +3,12 @@
 namespace Ascension;
 
 use Ascension\Exceptions\ControllerNotFound;
+use Ascension\Exceptions\DataStorageFailure;
+use Ascension\Exceptions\FrameworkFailure;
+use Ascension\Exceptions\FrameworkSettingsFailure;
 use Ascension\Exceptions\RequestHandlerFailure;
 use Ascension\Exceptions\RequestIDFailure;
+use Ascension\Exceptions\TemplateEngineFailure;
 
 class Core
 {
