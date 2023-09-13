@@ -45,7 +45,7 @@ class Core
     /* Routing - Sets default routes
     */
     public static $Route = array(
-        'controller' => 'Default',
+        'controller' => 'Home',
         'method' => 'main',
         'id' => 0,
         'content' => 'plain'
@@ -102,12 +102,16 @@ class Core
         /* Router */
         if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
             $path = array();
-            $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
-            if ($path[0] === '') {
-                $path = array_reverse($path, true);
-                array_pop($path);
-                $path = array_reverse($path, true);
+
+            if (!$_SERVER['REQUEST_URI'] === "/") {
+                $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
+                if ($path[0] === '') {
+                    $path = array_reverse($path, true);
+                    array_pop($path);
+                    $path = array_reverse($path, true);
+                }
             }
+
 
             /* Controller */
             if (isset($path[1])) {
@@ -115,6 +119,8 @@ class Core
                 if (!is_dir(ROOT . DS . 'lib' . DS . self::$Route['controller'])) {
                     throw new ControllerNotFound("Controller '" . self::$Route['controller'] . "' not found.", 1);
                 }
+            } else {
+                self::$Route['controller'] = 'Home';
             }
             /* Method extraction */
             if (isset($path[2])) {
@@ -132,8 +138,9 @@ class Core
                     throw new RequestIDFailure("Specified ID presented to the framework did not match expected format e.g. Name:Value.", 1);
                 }
             }
-            self::$HTTP = new HTTP($_SERVER, self::$UserData, $_FILES, self::$Route['id']);
         }
+
+        self::$HTTP = new HTTP($_SERVER, self::$UserData, $_FILES, self::$Route['id']);
     }
 
 
