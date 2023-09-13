@@ -103,7 +103,7 @@ class Core
         if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
             $path = array();
 
-            if (!$_SERVER['REQUEST_URI'] === "/") {
+            if ($_SERVER['REQUEST_URI'] !== "/") {
                 $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
                 if ($path[0] === '') {
                     $path = array_reverse($path, true);
