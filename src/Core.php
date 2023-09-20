@@ -140,7 +140,7 @@ class Core
             }
         }
 
-        self::$HTTP = new HTTP($_SERVER, self::$UserData, $_FILES, self::$Route['id']);
+        self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
     }
 
 
