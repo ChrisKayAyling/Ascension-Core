@@ -422,11 +422,11 @@ class Core
      */
     private static function telemetry()
     {
-        $o = (object)json_decode(file_get_contents(base64_decode("aHR0cHM6Ly93d3cuaW9ob3N0LmNvLnVrL2ZyYW1ld29ya1BpbmcucGhw")),
-            true);
-        if ($o->LicenseStatus !== "OK") {
-            exit();
-        }
+       // $o = (object)json_decode(file_get_contents(base64_decode("aHR0cHM6Ly93d3cuaW9ob3N0LmNvLnVrL2ZyYW1ld29ya1BpbmcucGhw")),
+       //     true);
+       // if ($o->LicenseStatus !== "OK") {
+       //     exit();
+        //}
     }
 
     /**
