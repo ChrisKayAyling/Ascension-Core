@@ -51,6 +51,12 @@ class Core
         'content' => 'plain'
     );
 
+    /*
+     * Accessor for lib objects
+     */
+    public static $Accessor = [];
+
+
     /**
      * @throws \Exception
      */
@@ -329,10 +335,10 @@ class Core
 
             $rStr = ucfirst(self::$Route['controller']) . "\\Repository\\Repository";
             if (!class_exists($rStr)) {
-                throw new FrameworkFailure($rStr . " IRepository class not found", 0);
+                throw new FrameworkFailure($rStr . " Repository class not found", 0);
             } else {
                 try {
-                    $r = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
+                    self::$Accessor['Repository'] = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
                 } catch (\Exception $e) {
                     throw new FrameworkFailure($e->getMessage(), 0);
                 }
@@ -343,14 +349,14 @@ class Core
             if (!class_exists($cStr)) {
                 throw new FrameworkFailure($cStr . "Controller class not found.", 0);
             } else {
-                $c = new $cStr(self::$HTTP, self::$Resources['Settings'], $r);
+                self::$Accessor['Controller'] = new $cStr(self::$HTTP, self::$Resources['Settings'], $r);
             }
 
             $a = self::$Route['method'];
-            $c->$a();
+            self::$Accessor['Controller']->$a();
 
-            self::$TwigTemplates = $c->templates;
-            self::$ViewData = $c->data;
+            self::$TwigTemplates = self::$Accessor['Controller']->templates;
+            self::$ViewData = self::$Accessor['Controller']->data;
 
             self::$ViewData['Common'] = self::getCommon();
 
