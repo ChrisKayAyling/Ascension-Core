@@ -349,7 +349,7 @@ class Core
             if (!class_exists($cStr)) {
                 throw new FrameworkFailure($cStr . "Controller class not found.", 0);
             } else {
-                self::$Accessor['Controller'] = new $cStr(self::$HTTP, self::$Resources['Settings'], $r);
+                self::$Accessor['Controller'] = new $cStr(self::$HTTP, self::$Resources['Settings'], self::$Accessor['Repository']);
             }
 
             $a = self::$Route['method'];
