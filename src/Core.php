@@ -30,6 +30,11 @@ class Core
     public static $Debug = true;
 
     /**
+     * @var bool Enable/Disable common return properties as part of XHR Calls.
+     */
+    public static $EnableCommonHelpers = false;
+
+    /**
      * @var bool Enable/Disable twig cache. | Defaults to TRUE
      */
     public static $TemplateDevelopmentMode = true;
@@ -372,7 +377,9 @@ class Core
             self::$TwigTemplates = self::$Accessor['Controller']->templates;
             self::$ViewData = self::$Accessor['Controller']->data;
 
-            self::$ViewData['Common'] = self::getCommon();
+            if (self::$EnableCommonHelpers) {
+                self::$ViewData['Common'] = self::getCommon();
+            }
 
             if (self::$Debug) {
                 d("Ascension Core Debug Output");
