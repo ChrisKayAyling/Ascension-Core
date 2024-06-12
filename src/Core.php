@@ -222,9 +222,13 @@ class Core
         }
 
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            define("DS", "\\");
+            if (!defined("DS")) {
+                define("DS", "\\");
+            }
         } else {
-            define("DS", "/");
+            if (!defined("DS")) {
+                define("DS", "/");
+            }
         }
 
         if (isset($_SERVER['SERVER_ADDR'])) {
@@ -233,7 +237,7 @@ class Core
             $_SERVER['SERVER_ADDR'] = "127.0.0.1";
         }
 
-        if (isset($_SERVER['REMOTE_ADDR'])) {
+        if (isset($_SERVER['REMOTE_ADDR']) && !defined('REMOTE_ADDR')) {
             define('REMOTE_ADDR', $_SERVER['REMOTE_ADDR']);
         } else {
             $_SERVER['REMOTE_ADDR'] = "127.0.0.1";
