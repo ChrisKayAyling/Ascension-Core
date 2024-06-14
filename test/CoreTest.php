@@ -1,0 +1,488 @@
+<?php
+
+namespace test;
+
+use Ascension\Core;
+use Ascension\HTTP;
+use PHPUnit\Framework\TestCase;
+
+class CoreTest extends TestCase
+{
+
+    /**
+     * @return void
+     */
+    public function setUp(): void
+    {
+
+    }
+
+    /**
+     * testCoreHasPrivateTwigEnvironment
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPrivateTwigEnvironment()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("TwigEnvironment");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+
+    /**
+     * testCoreHasPrivateUserTwigEnvironment
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPrivateUserTwigEnvironment()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("UserTwigEnvironment");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasPrivateUserTwigEnvironment
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPrivateTwigCustomTemplating()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("TwigCustomTemplating");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasPrivateTwigCustomTemplatingHasKeys
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPrivateTwigCustomTemplatingHasKeys()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $property = $reflectionCoreClass->getProperty("TwigCustomTemplating");
+
+        $this->assertArrayHasKey("Header", $property->getValue());
+        $this->assertArrayHasKey("Navigation", $property->getValue());
+        $this->assertArrayHasKey("Footer", $property->getValue());
+
+    }
+
+    /**
+     * testCoreHasPublicResourceArrayProperty
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPublicResourceArrayProperty()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("Resources");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasPrivateTwigTemplatesProperty
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPrivateTwigTemplatesProperty()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("TwigTemplates");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasPrivateViewDataProperty
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPrivateViewDataProperty()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("ViewData");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+
+    /**
+     * testCoreHasPublicDebugProperty
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPublicDebugProperty()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("Debug");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasTemplateDevelopmentModeProperty
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasTemplateDevelopmentModeProperty()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("TemplateDevelopmentMode");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->getValue(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+
+    /**
+     * testCoreHasPublicUserDataProperty
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPublicUserDataProperty()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("UserData");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->getValue(), array());
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+
+    /**
+     * testCoreHasPrivateHTTPProperty
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPrivateHTTPProperty()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("HTTP");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+
+    /**
+     * testCoreHasPublicRouteProperty
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasPublicRouteProperty()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getProperty("Route");
+
+        $propertyVal = $properties->getValue();
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($propertyVal['controller'], 'Home');
+        $this->assertEquals($propertyVal['method'], 'main');
+        $this->assertEquals($propertyVal['id'], 0);
+        $this->assertEquals($propertyVal['content'], 'plain');
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+
+    /**
+     * testCoreHasMethodAscend
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethodAscend()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("ascend");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethodRequestHandler
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethodRequestHandler()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("requestHandler");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethodAddDataStorageObjects
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethodAddDataStorageObjects()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("addDataStorageObjects");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethod__saneSys
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethod__saneSys()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("__saneSys");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethod__setupSys
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethod__setupSys()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("__setupSys");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethod__loadSettings
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethod__loadSettings()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("__loadSettings");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+
+    /**
+     * testCoreHasMethod__loader
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethod__loader()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("__loader");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethod__output
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethod__output()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("__output");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethodcreate_rmq_worker
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethodcreate_rmq_worker()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("create_rmq_worker");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethodtelemetry
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethodtelemetry()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("telemetry");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethodGetCommon
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethodGetCommon()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("getCommon");
+
+        $this->assertEquals($properties->isPrivate(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+
+    /**
+     * testCoreHasMethodGetCommon
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethod__injectResource()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("__injectResource");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethodGetCommon
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethod__removeResource()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("__removeResource");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /**
+     * testCoreHasMethodGetCommon
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreHasMethodaddCustomTemplate()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $properties = $reflectionCoreClass->getMethod("addCustomTemplate");
+
+        $this->assertEquals($properties->isPublic(), true);
+        $this->assertEquals($properties->isStatic(), true);
+    }
+
+    /* Test Request Handler Route identification */
+
+    /**
+     * testCoreHasMethodGetCommon
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreRequestHandler()
+    {
+
+        $_SERVER['CONTENT_TYPE'] = 'application/json';
+
+        $reflectionClass = new \ReflectionClass('Ascension\Core');
+
+        $reflectionMethod = $reflectionClass->getMethod('requestHandler');
+
+        $reflectionMethod->invoke($reflectionClass, '');
+
+        $property = $reflectionClass->getProperty('Route');
+
+        $values = $property->getValue();
+
+        $this->assertEquals($values['content'], 'json');
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}

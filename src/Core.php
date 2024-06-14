@@ -9,6 +9,8 @@ use Ascension\Exceptions\FrameworkSettingsFailure;
 use Ascension\Exceptions\RequestHandlerFailure;
 use Ascension\Exceptions\RequestIDFailure;
 use Ascension\Exceptions\TemplateEngineFailure;
+use Ascension\RabbitMQ\Base;
+use Ascension\RabbitMQ\BaseFactory;
 
 class Core
 {
@@ -414,6 +416,34 @@ class Core
             echo $mainRendered;
             exit();
         }
+    }
+
+    /**
+     * create_rmq_worker
+     *
+     * @param string $action
+     * @param string $unit
+     * @param string $exchange
+     * @param string $type
+     * @param string $routeKey
+     * @return void
+     */
+    public static function create_rmq_worker(string $action, string $unit, string $exchange, string $type, string $routeKey) {
+
+        $factory = new BaseFactory();
+
+        $channel = $factory->Resource->channel();
+
+        $channel->exchange_declare($exchange, $type, true, true, true);
+
+        $channel->queue_declare(
+            $action . "_" . $unit . "_queue",
+            true,
+            true,
+            false,
+            false
+        );
+
     }
 
     /**
