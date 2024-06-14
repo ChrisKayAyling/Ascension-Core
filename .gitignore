@@ -1,3 +1,11 @@
+# gitignore
 .idea/
 .idea
 .idea/modules.xml
+
+.phpunit.result.cache
+
+composer.phar
+composer.lock
+vendor/
+
