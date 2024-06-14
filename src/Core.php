@@ -32,6 +32,11 @@ class Core
     public static $Debug = true;
 
     /**
+     * @var bool Enable/Disable common return properties as part of XHR Calls.
+     */
+    public static $EnableCommonHelpers = false;
+
+    /**
      * @var bool Enable/Disable twig cache. | Defaults to TRUE
      */
     public static $TemplateDevelopmentMode = true;
@@ -52,6 +57,12 @@ class Core
         'id' => 0,
         'content' => 'plain'
     );
+
+    /*
+     * Accessor for lib objects
+     */
+    public static $Accessor = [];
+
 
     /**
      * @throws \Exception
@@ -131,18 +142,28 @@ class Core
                 self::$Route['method'] = 'main';
             }
 
-            /* id extraction from kvp.*/
-            if (isset($path[3])) {
-                $idSplit = explode(':', $path[3]);
-                if (isset($idSplit[0]) && isset($idSplit[1])) {
-                    self::$Route['id'] = array($idSplit[0] => $idSplit[1]);
-                } else {
-                    throw new RequestIDFailure("Specified ID presented to the framework did not match expected format e.g. Name:Value.", 1);
+            /* filters param extraction */
+
+            if (count($path) > 2) {
+                $path = array_splice($path, 2);
+                $filters = [];
+                foreach ($path as $filterVal) {
+                    $filterSplit = explode(":", $filterVal);
+                    $filters[$filterSplit[0]] = $filterSplit[1];
+
+                    // id to route
+                    if (isset($filterSplit[0]) && isset($filterSplit[1])) {
+                        self::$Route['id'] = array($filterSplit[0] => $filterSplit[1]);
+                    }
                 }
+                self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, $filters);
+                return;
             }
+            self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
+            return;
         }
 
-        self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
+
     }
 
 
@@ -208,9 +229,13 @@ class Core
         }
 
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            define("DS", "\\");
+            if (!defined("DS")) {
+                define("DS", "\\");
+            }
         } else {
-            define("DS", "/");
+            if (!defined("DS")) {
+                define("DS", "/");
+            }
         }
 
         if (isset($_SERVER['SERVER_ADDR'])) {
@@ -219,7 +244,7 @@ class Core
             $_SERVER['SERVER_ADDR'] = "127.0.0.1";
         }
 
-        if (isset($_SERVER['REMOTE_ADDR'])) {
+        if (isset($_SERVER['REMOTE_ADDR']) && !defined('REMOTE_ADDR')) {
             define('REMOTE_ADDR', $_SERVER['REMOTE_ADDR']);
         } else {
             $_SERVER['REMOTE_ADDR'] = "127.0.0.1";
@@ -331,10 +356,10 @@ class Core
 
             $rStr = ucfirst(self::$Route['controller']) . "\\Repository\\Repository";
             if (!class_exists($rStr)) {
-                throw new FrameworkFailure($rStr . " IRepository class not found", 0);
+                throw new FrameworkFailure($rStr . " Repository class not found", 0);
             } else {
                 try {
-                    $r = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
+                    self::$Accessor['Repository'] = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
                 } catch (\Exception $e) {
                     throw new FrameworkFailure($e->getMessage(), 0);
                 }
@@ -345,16 +370,18 @@ class Core
             if (!class_exists($cStr)) {
                 throw new FrameworkFailure($cStr . "Controller class not found.", 0);
             } else {
-                $c = new $cStr(self::$HTTP, self::$Resources['Settings'], $r);
+                self::$Accessor['Controller'] = new $cStr(self::$HTTP, self::$Resources['Settings'], self::$Accessor['Repository']);
             }
 
             $a = self::$Route['method'];
-            $c->$a();
+            self::$Accessor['Controller']->$a();
 
-            self::$TwigTemplates = $c->templates;
-            self::$ViewData = $c->data;
+            self::$TwigTemplates = self::$Accessor['Controller']->templates;
+            self::$ViewData = self::$Accessor['Controller']->data;
 
-            self::$ViewData['Common'] = self::getCommon();
+            if (self::$EnableCommonHelpers) {
+                self::$ViewData['Common'] = self::getCommon();
+            }
 
             if (self::$Debug) {
                 d("Ascension Core Debug Output");
