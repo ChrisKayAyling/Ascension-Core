@@ -406,6 +406,9 @@ class Core
             echo json_encode(self::$ViewData, true);
             exit();
         } else {
+            // Provide access to SESSION vars within main templates.
+            self::$ViewData['Session'] = $_SESSION;
+
             // Process HTML Templating
             foreach (self::$TwigCustomTemplating as $customTemplateKey => $customTemplateValue) {
                 if (null !== $customTemplateValue) {
