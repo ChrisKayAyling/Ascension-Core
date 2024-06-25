@@ -459,7 +459,7 @@ class CoreTest extends TestCase
      */
     public function testRequestHandler() {
 
-        define("ROOT", 'test/Mock');
+        define("ROOT", 'tests/Mock');
         define("DS", "/");
 
         $_SERVER['REQUEST_URI'] = "/test/method";
