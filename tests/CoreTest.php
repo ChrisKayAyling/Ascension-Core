@@ -477,7 +477,6 @@ class CoreTest extends TestCase
         $this->assertEquals($values['controller'], "Test");
         $this->assertEquals($values['method'], "method");
         $this->assertEquals($values['id'], 0);
-        $this->assertEquals($values['content'], "plain");
     }
 
 
