@@ -451,6 +451,35 @@ class CoreTest extends TestCase
 
     }
 
+    /**
+     * Test upper case for controller when lower case specified in request URI
+     *
+     * @return void
+     * @throws \ReflectionException
+     */
+    public function testRequestHandler() {
+
+        define("ROOT", 'test/Mock');
+        define("DS", "/");
+
+        $_SERVER['REQUEST_URI'] = "/test/method";
+
+        $reflectionClass = new \ReflectionClass('Ascension\Core');
+
+        $reflectionMethod = $reflectionClass->getMethod('requestHandler');
+
+        $reflectionMethod->invoke($reflectionClass, '');
+
+        $property = $reflectionClass->getProperty('Route');
+
+        $values = $property->getValue();
+
+        $this->assertEquals($values['controller'], "Test");
+        $this->assertEquals($values['method'], "method");
+        $this->assertEquals($values['id'], 0);
+        $this->assertEquals($values['content'], "plain");
+    }
+
 
 
 

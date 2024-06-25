@@ -128,9 +128,9 @@ class Core
 
             /* Controller */
             if (isset($path[1])) {
-                self::$Route['controller'] = preg_replace('/[^a-zA-z]/', '', $path[1]);
-                if (!is_dir(ROOT . DS . 'lib' . DS . self::$Route['controller'])) {
-                    throw new ControllerNotFound("Controller '" . self::$Route['controller'] . "' not found.", 1);
+                self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
+                if (!is_dir(ROOT . DS . 'lib' . DS . ucfirst(self::$Route['controller']))) {
+                    throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
                 }
             } else {
                 self::$Route['controller'] = 'Home';
