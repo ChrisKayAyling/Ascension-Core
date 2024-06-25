@@ -481,37 +481,34 @@ class CoreTest extends TestCase
     }
 
 
+    /**
+     * test Common data has agreed values
+     *
+     * Check property accessor has been set to correct value.
+     */
+    public function testCoreCommonPropertiesHasValues()
+    {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
 
+        $reflectionMethod = $reflectionCoreClass->getMethod("getCommon");
 
+        $values = $reflectionMethod->invoke($reflectionCoreClass, '');
 
+        $this->assertArrayHasKey('Server', $values);
 
+        $this->assertArrayHasKey('SERVER_ADDR', $values['Server']);
+        $this->assertArrayHasKey('REMOTE_ADDR', $values['Server']);
+        $this->assertArrayHasKey('HTTP_USER_AGENT', $values['Server']);
+        $this->assertArrayHasKey('SESSION_ID', $values['Server']);
 
+        $this->assertArrayHasKey('General', $values);
 
+        $this->assertArrayHasKey('DayShort', $values['General']);
+        $this->assertArrayHasKey('Day', $values['General']);
+        $this->assertArrayHasKey('DayNumber', $values['General']);
+        $this->assertArrayHasKey('MonthShort', $values['General']);
+        $this->assertArrayHasKey('MonthNumber', $values['General']);
+        $this->assertArrayHasKey('Year', $values['General']);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    }
 }
