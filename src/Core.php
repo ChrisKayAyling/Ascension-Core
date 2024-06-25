@@ -517,7 +517,7 @@ class Core
         $data['General']['Day'] = date('l');
         $data['General']['DayNumber'] = date('d');
         $data['General']['MonthShort'] = date('M');
-        $data['General']['MontNumber'] = date('m');
+        $data['General']['MonthNumber'] = date('m');
         $data['General']['Year'] = date("Y");
 
         return $data;
