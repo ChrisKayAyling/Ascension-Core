@@ -528,11 +528,10 @@ class Core
      * Resource Injector
      * @param $Name
      * @param $Resource
-     * @return false|void
+     * @return boolean|void
      */
     public static function __injectResource($Name, $Resource)
     {
-
         if (!isset(self::$Resources[$Name])) {
             self::$Resources[$Name] = $Resource;
             return true;

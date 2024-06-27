@@ -415,7 +415,7 @@ class CoreTest extends TestCase
      *
      * Check property accessor has been set to correct value.
      */
-    public function testCoreHasMethodaddCustomTemplate()
+    public function testCoreHasMethodAddCustomTemplate()
     {
         $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
 
@@ -508,6 +508,80 @@ class CoreTest extends TestCase
         $this->assertArrayHasKey('MonthShort', $values['General']);
         $this->assertArrayHasKey('MonthNumber', $values['General']);
         $this->assertArrayHasKey('Year', $values['General']);
-
     }
+
+
+    /* Resource Injectors *********************/
+
+    /**
+     * Test resource injector sets value in static self::Resources
+     * @return void
+     * @throws \ReflectionException
+     */
+    public function testCore__injectResource() {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        $reflectionMethod = $reflectionCoreClass->getMethod("__injectResource");
+
+        $reflectionMethod->invoke($reflectionCoreClass, "Test", array("TestKey" => "TestValue"));
+
+        $a = $reflectionCoreClass->getProperty("Resources");
+        $b = $a->getValue();
+
+        $this->assertArrayHasKey("Test", $b);
+    }
+
+    /**
+     * Remove resource from self::$Resources by Name.
+     * @return void
+     * @throws \ReflectionException
+     */
+    public function testCore__removeResource() {
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        /* Add Resource */
+        $reflectionMethodAdd = $reflectionCoreClass->getMethod("__injectResource");
+        $reflectionMethodAdd->invoke($reflectionCoreClass, "Test", array("TestKey" => "TestValue"));
+
+        $a = $reflectionCoreClass->getProperty("Resources");
+        $b = $a->getValue();
+
+        $this->assertArrayHasKey("Test", $b);
+
+        /* Remove Resource */
+
+        $reflectionMethodRemove = $reflectionCoreClass->getMethod("__removeResource");
+        $reflectionMethodRemove->invoke($reflectionCoreClass, "Test");
+
+        $a = $reflectionCoreClass->getProperty("Resources");
+        $b = $a->getValue();
+
+        $this->assertArrayNotHasKey("Test", $b);
+    }
+
+    public function testCore__loader() {
+
+        /* include test classes */
+        include_once('Mock/lib/Test/Repository/Repository.php');
+        include_once('Mock/lib/Test/Controller/Controller.php');
+
+        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
+
+        /* Mock our route */
+        $reflectionCoreClass->setStaticPropertyValue("Route", array(
+            'controller' => 'Test',
+            'method' => 'main'
+        ));
+
+        $reflectionMethod = $reflectionCoreClass->getMethod("__loader");
+
+        $reflectionMethod->invoke($reflectionCoreClass);
+
+        $dataValues = $reflectionCoreClass->getProperty("Accessor");
+        $templateValues = $reflectionCoreClass->getProperty("templates");
+
+        /*@todo complete test */
+        $this->assertEquals(true, true);
+    }
+
 }
