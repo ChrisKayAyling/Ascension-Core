@@ -578,7 +578,8 @@ class CoreTest extends TestCase
         $reflectionMethod->invoke($reflectionCoreClass);
 
         $dataValues = $reflectionCoreClass->getProperty("Accessor");
-        $templateValues = $reflectionCoreClass->getProperty("templates");
+        $templateValues = $reflectionCoreClass->getProperty("TwigTemplates");
+        $ViewDataValues = $reflectionCoreClass->getProperty('ViewData');
 
         /*@todo complete test */
         $this->assertEquals(true, true);
