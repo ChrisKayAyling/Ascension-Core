@@ -9,8 +9,6 @@ use Ascension\Exceptions\FrameworkSettingsFailure;
 use Ascension\Exceptions\RequestHandlerFailure;
 use Ascension\Exceptions\RequestIDFailure;
 use Ascension\Exceptions\TemplateEngineFailure;
-use Ascension\RabbitMQ\Base;
-use Ascension\RabbitMQ\BaseFactory;
 
 class Core
 {
@@ -69,23 +67,41 @@ class Core
      */
     public static function ascend()
     {
-        // Telemetry
-        self::telemetry();
-
-        // Sanity Check
-        self::__saneSys();
-
         try {
-            self::__loadSettings();
+
+            // Telemetry
+            self::telemetry();
+
+            // Sanity Check
+            self::__saneSys();
+
+            try {
+                self::__loadSettings();
+            } catch (\Exception $e) {
+                throw new \Exception("Error loading system setup and settings. \n" . $e->getTraceAsString());
+            }
+
+            try {
+                self::addDataStorageObjects();
+            } catch (\Exception $e) {
+                throw new \Exception("Exception raised during the loading of DataStorageObjects. \n" . $e->getTraceAsString());
+            }
+
+            try {
+                self::requestHandler();
+            } catch (\Exception $e) {
+                throw new \Exception("Exception raised during request handling. \n" . $e->getTraceAsString());
+            }
+
+
+            // Loader
+            self::__loader();
+            self::__output();
+
         } catch (\Exception $e) {
-            throw new \Exception("Error loading system setup and settings, : " . $e->getMessage());
+            new ExceptionPrinter($e->getTraceAsString());
+            exit();
         }
-
-        self::requestHandler();
-
-        // Loader
-        self::__loader();
-        self::__output();
     }
 
 
@@ -96,71 +112,74 @@ class Core
     public static function requestHandler()
     {
 
+        try {
+            /* Data Ingress */
+            if (isset($_SERVER['CONTENT_TYPE'])) {
+                switch (strtolower($_SERVER['CONTENT_TYPE'])) {
+                    case 'application/json':
+                        self::$UserData = json_decode(file_get_contents('php://input'), true);
+                        self::$Route['content'] = 'json';
+                        break;
 
-        /* Data Ingress */
-        if (isset($_SERVER['CONTENT_TYPE'])) {
-            switch (strtolower($_SERVER['CONTENT_TYPE'])) {
-                case 'application/json':
-                    self::$UserData = json_decode(file_get_contents('php://input'), true);
-                    self::$Route['content'] = 'json';
-                    break;
-
-                default;
-                    self::$UserData = $_REQUEST;
-                    self::$Route['content'] = 'plain';
-                    break;
-            }
-        }
-
-        /* Router */
-        if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
-            $path = array();
-
-            if ($_SERVER['REQUEST_URI'] !== "/") {
-                $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
-                if ($path[0] === '') {
-                    $path = array_reverse($path, true);
-                    array_pop($path);
-                    $path = array_reverse($path, true);
+                    default;
+                        self::$UserData = $_REQUEST;
+                        self::$Route['content'] = 'plain';
+                        break;
                 }
             }
 
+            /* Router */
+            if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
+                $path = array();
 
-            /* Controller */
-            if (isset($path[1])) {
-                self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
-                if (!is_dir(ROOT . DS . 'lib' . DS . ucfirst(self::$Route['controller']))) {
-                    throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
-                }
-            } else {
-                self::$Route['controller'] = 'Home';
-            }
-            /* Method extraction */
-            if (isset($path[2])) {
-                self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
-            } else {
-                self::$Route['method'] = 'main';
-            }
-
-            /* filters param extraction */
-
-            if (count($path) > 2) {
-                $path = array_splice($path, 2);
-                $filters = [];
-                foreach ($path as $filterVal) {
-                    $filterSplit = explode(":", $filterVal);
-                    $filters[$filterSplit[0]] = $filterSplit[1];
-
-                    // id to route
-                    if (isset($filterSplit[0]) && isset($filterSplit[1])) {
-                        self::$Route['id'] = array($filterSplit[0] => $filterSplit[1]);
+                if ($_SERVER['REQUEST_URI'] !== "/") {
+                    $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
+                    if ($path[0] === '') {
+                        $path = array_reverse($path, true);
+                        array_pop($path);
+                        $path = array_reverse($path, true);
                     }
                 }
-                self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, $filters);
+
+
+                /* Controller */
+                if (isset($path[1])) {
+                    self::$Route['controller'] = preg_replace('/[^a-zA-z]/', '', $path[1]);
+                    if (!is_dir(ROOT . DS . 'lib' . DS . self::$Route['controller'])) {
+                        throw new ControllerNotFound("Controller '" . self::$Route['controller'] . "' not found.", 1);
+                    }
+                } else {
+                    self::$Route['controller'] = 'Home';
+                }
+                /* Method extraction */
+                if (isset($path[2])) {
+                    self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
+                } else {
+                    self::$Route['method'] = 'main';
+                }
+
+                /* filters param extraction */
+
+                if (count($path) > 2) {
+                    $path = array_splice($path, 2);
+                    $filters = [];
+                    foreach ($path as $filterVal) {
+                        $filterSplit = explode(":", $filterVal);
+                        $filters[$filterSplit[0]] = $filterSplit[1];
+
+                        // id to route
+                        if (isset($filterSplit[0]) && isset($filterSplit[1])) {
+                            self::$Route['id'] = array($filterSplit[0] => $filterSplit[1]);
+                        }
+                    }
+                    self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, $filters);
+                    return;
+                }
+                self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
                 return;
             }
-            self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
-            return;
+        } catch (\Exception $e) {
+            throw new \Exception($e->getTraceAsString());
         }
 
 
@@ -406,9 +425,6 @@ class Core
             echo json_encode(self::$ViewData, true);
             exit();
         } else {
-            // Provide access to SESSION vars within main templates.
-            self::$ViewData['Session'] = $_SESSION;
-
             // Process HTML Templating
             foreach (self::$TwigCustomTemplating as $customTemplateKey => $customTemplateValue) {
                 if (null !== $customTemplateValue) {
@@ -449,43 +465,15 @@ class Core
     }
 
     /**
-     * create_rmq_worker
-     *
-     * @param string $action
-     * @param string $unit
-     * @param string $exchange
-     * @param string $type
-     * @param string $routeKey
-     * @return void
-     */
-    public static function create_rmq_worker(string $action, string $unit, string $exchange, string $type, string $routeKey) {
-
-        $factory = new BaseFactory();
-
-        $channel = $factory->Resource->channel();
-
-        $channel->exchange_declare($exchange, $type, true, true, true);
-
-        $channel->queue_declare(
-            $action . "_" . $unit . "_queue",
-            true,
-            true,
-            false,
-            false
-        );
-
-    }
-
-    /**
      * Telemetry
      * @return void
      */
     private static function telemetry()
     {
-       // $o = (object)json_decode(file_get_contents(base64_decode("aHR0cHM6Ly93d3cuaW9ob3N0LmNvLnVrL2ZyYW1ld29ya1BpbmcucGhw")),
-       //     true);
-       // if ($o->LicenseStatus !== "OK") {
-       //     exit();
+        // $o = (object)json_decode(file_get_contents(base64_decode("aHR0cHM6Ly93d3cuaW9ob3N0LmNvLnVrL2ZyYW1ld29ya1BpbmcucGhw")),
+        //     true);
+        // if ($o->LicenseStatus !== "OK") {
+        //     exit();
         //}
     }
 
@@ -517,21 +505,55 @@ class Core
         $data['General']['Day'] = date('l');
         $data['General']['DayNumber'] = date('d');
         $data['General']['MonthShort'] = date('M');
-        $data['General']['MonthNumber'] = date('m');
+        $data['General']['MontNumber'] = date('m');
         $data['General']['Year'] = date("Y");
 
         return $data;
     }
 
+    /**
+     * raiseError
+     *
+     * A custom error handler that can be used to raise an error and log to the syslog.
+     *
+     * @param $message
+     * @param $level
+     * @return true
+     */
+    public static function raiseEvent($message, $level = E_USER_NOTICE) {
+        $trace = debug_backtrace();
+        $caller = next($trace);
+
+
+        $msg = $message . ' in ' . $caller['function'] . ' called from ' . $caller['file'] . ' on line ' . $caller['line'] . '\r\n';
+        $msg .= "class:" . $caller['class'] . "\r\n";
+
+        if (isset($caller['object'])) {
+            $msg .= "object: " . json_encode($caller['object']);
+        }
+
+        switch ($level) {
+            case E_USER_ERROR: {
+                syslog(E_ERROR, $msg);
+                new ExceptionPrinter($msg);
+                exit();
+            }
+
+            case E_USER_NOTICE: {
+                syslog(E_NOTICE, $msg);
+            }
+        }
+    }
 
     /**
      * Resource Injector
      * @param $Name
      * @param $Resource
-     * @return boolean|void
+     * @return false|void
      */
     public static function __injectResource($Name, $Resource)
     {
+
         if (!isset(self::$Resources[$Name])) {
             self::$Resources[$Name] = $Resource;
             return true;
