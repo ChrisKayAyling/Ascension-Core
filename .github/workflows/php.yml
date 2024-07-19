@@ -34,7 +34,7 @@ jobs:
 
 
     # run a build to create phar
-    #- run: composer run-script build
+    #- run: composer run-script buildaa
 
     - run: vendor/bin/phpunit
 
