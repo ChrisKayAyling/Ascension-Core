@@ -24,7 +24,10 @@
   },
   "require-dev": {
     "clue/phar-composer": "*",
-    "phpunit/phpunit": "*"
+    "phpunit/phpunit": "*",
+    "ext-sqlite3": "*",
+    "php-amqplib/php-amqplib": ">=v3.5.0"
+
   },
   "autoload": {
     "psr-4": {

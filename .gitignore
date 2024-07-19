@@ -9,5 +9,6 @@ composer.phar
 composer.lock
 vendor/
 
+
 # Don't include phar in commits
 app/*
