@@ -34,6 +34,7 @@
   },
   "scripts": {
     "post-install-cmd": [
+      "php vendor/clue/phar-composer/bin/phar-composer build .",
       "php -r \"chmod('./cache', 0777);\"",
       "php -r \"mkdir('../cache', 0777);\""
     ],
