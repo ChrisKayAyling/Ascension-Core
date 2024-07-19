@@ -19,7 +19,6 @@
     "twig/twig": "*",
     "kint-php/kint": "*",
     "matthiasmullie/minify": "*",
-    "mpdf/mpdf":"*",
     "ext-sqlite3": "*",
     "php-amqplib/php-amqplib": ">=v3.5.0"
   },
