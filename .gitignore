@@ -8,4 +8,4 @@
 composer.phar
 composer.lock
 vendor/
-
+app/*

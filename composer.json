@@ -16,14 +16,16 @@
     "docs": "https://www.iohost.co.uk"
   },
   "require": {
-    "php": "~8.1.0",
     "twig/twig": "*",
     "kint-php/kint": "*",
-    "phpunit/phpunit": "*",
     "matthiasmullie/minify": "*",
     "mpdf/mpdf":"*",
     "ext-sqlite3": "*",
     "php-amqplib/php-amqplib": ">=v3.5.0"
+  },
+  "require-dev": {
+    "clue/phar-composer": "*",
+    "phpunit/phpunit": "*"
   },
   "autoload": {
     "psr-4": {
@@ -34,6 +36,13 @@
     "post-install-cmd": [
       "php -r \"chmod('./cache', 0777);\"",
       "php -r \"mkdir('../cache', 0777);\""
+    ],
+    "what-dir": [
+      "dir"
+    ],
+    "build": [
+      "php vendor/clue/phar-composer/bin/phar-composer build .",
+      "mv core.phar app/"
     ]
   }
 }
