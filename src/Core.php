@@ -157,8 +157,10 @@ class Core
             if (isset($path[1])) {
                 self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
                 if (!is_dir(ROOT . DS . 'lib' . DS . ucfirst(self::$Route['controller']))) {
-                    error_log(sprintf("Core::requestHandler, throwing ControllerNotFound exception. User specified '%s'. Controller not registered with PSR04 autoloader or could not be found. ", ucfirst(self::$Route['controller'])) . $e->getMessage());
-                    throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
+                    error_log(sprintf("Core::requestHandler, throwing ControllerNotFound exception. User specified '%s'. Controller not registered with PSR04 autoloader or could not be found. ",
+                            ucfirst(self::$Route['controller'])) . $e->getMessage());
+                    throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.",
+                        1);
                 }
             } else {
                 self::$Route['controller'] = 'Home';
@@ -220,29 +222,44 @@ class Core
      * @return void
      * @throws \ReflectionException
      */
-    public static function addDataConnectors() {
+    public static function addDataConnectors()
+    {
 
         $settings = json_decode(
             file_get_contents(ROOT . DS . "etc" . DS . "config.json")
-            ,true);
+            , true);
 
-        foreach ($settings as $section) {
-            foreach ($section as $configSection)
-                if (array_key_exists('Resource', $configSection))  {
+        if (!array_key_exists('DataConnectors', $settings))
+            throw new DataStorageFailure("Core::addDataConnectors throwing exception unable to find config section 'DataConnectors'. ");
+
+        foreach ($settings['DataConnectors'] as $configSection) {
+            if (array_key_exists('Resource', $configSection)) {
+                try {
                     if ($configSection['RequiresParameters']) {
                         self::$Resources['DataStorage'][$configSection['Alias']] = new ($configSection['Resource'])((object)$configSection);
                     } else {
+
                         self::$Resources['DataStorage'][$configSection['Alias']] = new ($configSection['Resource'])();
                     }
+
+                } catch (\Exception $e) {
+                    throw new DataStorageFailure(sprintf("Core::addDataConnectors error connecting to database. Hostname: %s, Database: %s, Username: %s ",
+                        $configSection['Hostname'],
+                        $configSection['Database'],
+                        $configSection['Username']
+                    ), 1);
                 }
+            }
         }
+
     }
 
 
     /**
      * @throws \Exception
      */
-    private static function __saneSys()
+    private
+    static function __saneSys()
     {
         try {
             if (!extension_loaded('curl')) {
@@ -258,7 +275,8 @@ class Core
             }
 
         } catch (\Exception $e) {
-            error_log(sprintf("Core::__saneSys, throwing exception, required component could not be found on system. %s", $error) . $e->getMessage());
+            error_log(sprintf("Core::__saneSys, throwing exception, required component could not be found on system. %s",
+                    $error) . $e->getMessage());
             throw new EnvironmentSanityCheckFailure($error, 0);
         }
 
@@ -267,7 +285,8 @@ class Core
     /**
      * @return void
      */
-    private static function __setupSys()
+    private
+    static function __setupSys()
     {
         date_default_timezone_set('Europe/London');
 
@@ -340,7 +359,8 @@ class Core
             self::$TwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
 
         } catch (\Exception $e) {
-            error_log(sprintf("Core::__setupSys, throwing exception. Twig templating engine throwing, %s", $e->getMessage()));
+            error_log(sprintf("Core::__setupSys, throwing exception. Twig templating engine throwing, %s",
+                $e->getMessage()));
             throw new TemplateEngineFailure($e->getMessage(), 0);
         }
 
@@ -354,7 +374,8 @@ class Core
             self::$UserTwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
 
         } catch (\Exception $e) {
-            error_log(sprintf("Core::__setupSys, throwing exception. Twig templating engine throwing, %s", $e->getMessage()));
+            error_log(sprintf("Core::__setupSys, throwing exception. Twig templating engine throwing, %s",
+                $e->getMessage()));
             throw new TemplateEngineFailure($e->getMessage(), 0);
         }
 
@@ -364,7 +385,8 @@ class Core
     /**
      * @throws \Exception
      */
-    public static function __loadSettings()
+    public
+    static function __loadSettings()
     {
         // Setup System
         self::__setupSys();
@@ -377,7 +399,8 @@ class Core
             self::__injectResource("Settings", $settings);
 
         } catch (\Exception $e) {
-            error_log(sprintf("Core::__loadSettings, throwing exception. issue loading settings file throwing with:  %s", $e->getMessage()));
+            error_log(sprintf("Core::__loadSettings, throwing exception. issue loading settings file throwing with:  %s",
+                $e->getMessage()));
             throw new FrameworkSettingsFailure($e->getMessage(), 0);
         }
 
@@ -400,7 +423,8 @@ class Core
                 }
             }
         } catch (\Exception $e) {
-            error_log(sprintf("Core::__loadSettings, throwing exception. issue loading settings from SQLite3 database:  %s", $e->getMessage()));
+            error_log(sprintf("Core::__loadSettings, throwing exception. issue loading settings from SQLite3 database:  %s",
+                $e->getMessage()));
             throw new FrameworkSettingsFailure("Core: Application settings could not be loaded." . $e->getMessage(), 0);
         }
     }
@@ -408,7 +432,8 @@ class Core
     /**
      * @throws \Exception
      */
-    public static function __loader()
+    public
+    static function __loader()
     {
         try {
 
@@ -417,7 +442,8 @@ class Core
                 throw new FrameworkFailure($rStr . " Repository class not found", 0);
             } else {
                 try {
-                    self::$Accessor['Repository'] = new $rStr(self::$Resources['DataStorage'], self::$Resources['Settings']);
+                    self::$Accessor['Repository'] = new $rStr(self::$Resources['DataStorage'],
+                        self::$Resources['Settings']);
                 } catch (\Exception $e) {
                     throw new FrameworkFailure($e->getMessage(), 0);
                 }
@@ -428,7 +454,8 @@ class Core
             if (!class_exists($cStr)) {
                 throw new FrameworkFailure($cStr . "Controller class not found.", 0);
             } else {
-                self::$Accessor['Controller'] = new $cStr(self::$HTTP, self::$Resources['Settings'], self::$Accessor['Repository']);
+                self::$Accessor['Controller'] = new $cStr(self::$HTTP, self::$Resources['Settings'],
+                    self::$Accessor['Repository']);
             }
 
             $a = self::$Route['method'];
@@ -456,7 +483,8 @@ class Core
     /**
      * @return void
      */
-    private static function __output()
+    private
+    static function __output()
     {
         // Process JSON
         if (self::$Route['content'] === 'json') {
@@ -516,7 +544,14 @@ class Core
      * @param string $routeKey
      * @return void
      */
-    public static function create_rmq_worker(string $action, string $unit, string $exchange, string $type, string $routeKey) {
+    public
+    static function create_rmq_worker(
+        string $action,
+        string $unit,
+        string $exchange,
+        string $type,
+        string $routeKey
+    ) {
 
         $factory = new BaseFactory();
 
@@ -538,7 +573,8 @@ class Core
      * Telemetry
      * @return void
      */
-    private static function telemetry()
+    private
+    static function telemetry()
     {
         // $o = (object)json_decode(file_get_contents(base64_decode("aHR0cHM6Ly93d3cuaW9ob3N0LmNvLnVrL2ZyYW1ld29ya1BpbmcucGhw")),
         //     true);
@@ -550,7 +586,8 @@ class Core
     /**
      * @return array
      */
-    private static function getCommon()
+    private
+    static function getCommon()
     {
         $data = array();
 
@@ -590,7 +627,11 @@ class Core
      * @param $level
      * @return true
      */
-    public static function raiseEvent($message, $level = E_USER_NOTICE) {
+    public
+    static function raiseEvent(
+        $message,
+        $level = E_USER_NOTICE
+    ) {
         $trace = debug_backtrace();
         $caller = next($trace);
 
@@ -603,13 +644,15 @@ class Core
         }
 
         switch ($level) {
-            case E_USER_ERROR: {
+            case E_USER_ERROR:
+            {
                 syslog(E_ERROR, $msg);
                 new ExceptionPrinter($msg);
                 exit();
             }
 
-            case E_USER_NOTICE: {
+            case E_USER_NOTICE:
+            {
                 syslog(E_NOTICE, $msg);
             }
         }
@@ -623,8 +666,11 @@ class Core
      * @param $Resource
      * @return boolean|void
      */
-    public static function __injectResource($Name, $Resource)
-    {
+    public
+    static function __injectResource(
+        $Name,
+        $Resource
+    ) {
         if (!isset(self::$Resources[$Name])) {
             self::$Resources[$Name] = $Resource;
             return true;
@@ -637,8 +683,10 @@ class Core
      * @param $Name
      * @return false|void
      */
-    public static function __removeResource($Name)
-    {
+    public
+    static function __removeResource(
+        $Name
+    ) {
         if (isset(self::$Resources[$Name])) {
             unset(self::$Resources[$Name]);
             return true;
@@ -653,8 +701,11 @@ class Core
      * @param $Path - Relative file path
      * @return bool
      */
-    public static function addCustomTemplate($Name, $Path)
-    {
+    public
+    static function addCustomTemplate(
+        $Name,
+        $Path
+    ) {
         self::$TwigCustomTemplating[$Name] = $Path;
         return true;
     }
