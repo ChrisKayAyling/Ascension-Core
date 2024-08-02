@@ -225,14 +225,8 @@ class Core
     public static function addDataConnectors()
     {
 
-        $settings = json_decode(
-            file_get_contents(ROOT . DS . "etc" . DS . "config.json")
-            , true);
-
-        if (!array_key_exists('DataConnectors', $settings))
-            throw new DataStorageFailure("Core::addDataConnectors throwing exception unable to find config section 'DataConnectors'. ");
-
-        foreach ($settings['DataConnectors'] as $configSection) {
+        foreach (self::$Resources['DataConnectors'] as $configSection) {
+            $configSection = (array) $configSection;
             if (array_key_exists('Resource', $configSection)) {
                 try {
                     if ($configSection['RequiresParameters']) {
@@ -407,8 +401,8 @@ class Core
         // Load settings optionally from CMS db if present.
         try {
             if (extension_loaded("SQLite3")) {
-                if (file_exists(ROOT . DS . "etc" . DS . "db.db")) {
-                    $handle = new \SQLite3(ROOT . DS . "etc" . DS . "db.db");
+                if (file_exists(ROOT . DS . "sqlite" . DS . "core.sqlite")) {
+                    $handle = new \SQLite3(ROOT . DS . "sqlite" . DS . "core.sqlite");
                     $result = $handle->query("SELECT * FROM settings");
                     $rows = array();
                     if ($result !== false) {
@@ -420,6 +414,26 @@ class Core
                         }
                         self::__injectResource("AppSettings", (object)$rows);
                     }
+
+                    /* Data Connectors */
+
+                    $result = $handle->query(sprintf("SELECT * FROM DataConnectors WHERE Environment = '%s'", $settings->Environment));
+                    $rows = array();
+                    if ($result !== false) {
+                        while ($row = $result->fetchArray()) {
+                            $rows[$row['Alias']] = (object)array(
+                                "Resource" => $row['Resource'],
+                                "RequiresParameters" => $row['RequiresParameters'],
+                                "Alias" => $row['Alias'],
+                                "Hostname" => $row['Hostname'],
+                                "Database" => $row['Database'],
+                                "Username" => $row['Username'],
+                                "Password" => $row['Password']
+                            );
+                        }
+                        self::__injectResource("DataConnectors", (object)$rows);
+                    }
+
                 }
             }
         } catch (\Exception $e) {
