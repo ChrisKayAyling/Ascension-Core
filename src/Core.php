@@ -80,18 +80,27 @@ class Core
             try {
                 self::__loadSettings();
             } catch (\Exception $e) {
+                error_log("Exception raised: Core::__loadSettings. " . $e->getMessage());
                 throw new \Exception("Error loading system setup and settings. \n" . $e->getTraceAsString());
             }
 
+            /* try {
+                 self::addDataStorageObjects();
+             } catch (\Exception $e) {
+                 throw new \Exception("Exception raised during the loading of DataStorageObjects. \n" . $e->getTraceAsString());
+             }*/
+
             try {
-                self::addDataStorageObjects();
+                self::addDataConnectors();
             } catch (\Exception $e) {
-                throw new \Exception("Exception raised during the loading of DataStorageObjects. \n" . $e->getTraceAsString());
+                error_log("Exception raised: Core::addDataConnectors. " . $e->getMessage());
+                throw new \Exception("Exception raised during the loading of DataConnectors. \n");
             }
 
             try {
                 self::requestHandler();
             } catch (\Exception $e) {
+                error_log("Exception raised: Core::requestHandler. " . $e->getMessage());
                 throw new \Exception("Exception raised during request handling. \n" . $e->getTraceAsString());
             }
 
@@ -148,6 +157,7 @@ class Core
             if (isset($path[1])) {
                 self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
                 if (!is_dir(ROOT . DS . 'lib' . DS . ucfirst(self::$Route['controller']))) {
+                    error_log(sprintf("Core::requestHandler, throwing ControllerNotFound exception. User specified '%s'. Controller not registered with PSR04 autoloader or could not be found. ", ucfirst(self::$Route['controller'])) . $e->getMessage());
                     throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
                 }
             } else {
@@ -210,13 +220,24 @@ class Core
      * @return void
      * @throws \ReflectionException
      */
-    public static function addDataConnectors($configSection) {
-        if ($configSection['RequiresParameters']) {
-            self::$Resources['DataStorage'][$configSection['Alias']] = new ($configSection['Resource'])((object)$configSection);
-        } else {
-            self::$Resources['DataStorage'][$configSection['Alias']] = new ($configSection['Resource'])();
+    public static function addDataConnectors() {
+
+        $settings = json_decode(
+            file_get_contents(ROOT . DS . "etc" . DS . "config.json")
+            ,true);
+
+        foreach ($settings as $section) {
+            foreach ($section as $configSection)
+                if (array_key_exists('Resource', $configSection))  {
+                    if ($configSection['RequiresParameters']) {
+                        self::$Resources['DataStorage'][$configSection['Alias']] = new ($configSection['Resource'])((object)$configSection);
+                    } else {
+                        self::$Resources['DataStorage'][$configSection['Alias']] = new ($configSection['Resource'])();
+                    }
+                }
         }
     }
+
 
     /**
      * @throws \Exception
@@ -237,6 +258,7 @@ class Core
             }
 
         } catch (\Exception $e) {
+            error_log(sprintf("Core::__saneSys, throwing exception, required component could not be found on system. %s", $error) . $e->getMessage());
             throw new EnvironmentSanityCheckFailure($error, 0);
         }
 
@@ -318,6 +340,7 @@ class Core
             self::$TwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
 
         } catch (\Exception $e) {
+            error_log(sprintf("Core::__setupSys, throwing exception. Twig templating engine throwing, %s", $e->getMessage()));
             throw new TemplateEngineFailure($e->getMessage(), 0);
         }
 
@@ -331,6 +354,7 @@ class Core
             self::$UserTwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
 
         } catch (\Exception $e) {
+            error_log(sprintf("Core::__setupSys, throwing exception. Twig templating engine throwing, %s", $e->getMessage()));
             throw new TemplateEngineFailure($e->getMessage(), 0);
         }
 
@@ -353,6 +377,7 @@ class Core
             self::__injectResource("Settings", $settings);
 
         } catch (\Exception $e) {
+            error_log(sprintf("Core::__loadSettings, throwing exception. issue loading settings file throwing with:  %s", $e->getMessage()));
             throw new FrameworkSettingsFailure($e->getMessage(), 0);
         }
 
@@ -375,6 +400,7 @@ class Core
                 }
             }
         } catch (\Exception $e) {
+            error_log(sprintf("Core::__loadSettings, throwing exception. issue loading settings from SQLite3 database:  %s", $e->getMessage()));
             throw new FrameworkSettingsFailure("Core: Application settings could not be loaded." . $e->getMessage(), 0);
         }
     }
