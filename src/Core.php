@@ -407,7 +407,7 @@ class Core
                     $rows = array();
                     if ($result !== false) {
                         while ($row = $result->fetchArray()) {
-                            $rows[$row['Environment']][$row['Name']] = (object)array(
+                            $rows[$row['Environment']][$row['Group'] . "_" . $row['Name']] = (object)array(
                                 "Value" => $row['Value'],
                                 "Group" => $row['Group']
                             );
@@ -476,7 +476,7 @@ class Core
             self::$Accessor['Controller']->$a();
 
             self::$TwigTemplates = self::$Accessor['Controller']->templates;
-            self::$ViewData = self::$Accessor['Controller']->data;
+            self::$ViewData = (array)self::$Accessor['Controller']->data;
 
             if (self::$EnableCommonHelpers) {
                 self::$ViewData['Common'] = self::getCommon();
