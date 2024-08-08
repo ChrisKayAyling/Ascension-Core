@@ -1,9 +1,9 @@
 <?php
-
 namespace Ascension;
 
 use Ascension\Exceptions\ControllerNotFound;
 use Ascension\Exceptions\DataStorageFailure;
+use Ascension\Exceptions\EnvironmentSanityCheckFailure;
 use Ascension\Exceptions\FrameworkFailure;
 use Ascension\Exceptions\FrameworkSettingsFailure;
 use Ascension\Exceptions\RequestHandlerFailure;
@@ -11,47 +11,79 @@ use Ascension\Exceptions\RequestIDFailure;
 use Ascension\Exceptions\TemplateEngineFailure;
 use Ascension\RabbitMQ\Base;
 use Ascension\RabbitMQ\BaseFactory;
+use Twig\Environment;
+use Twig\Extension\DebugExtension;
+use Twig\Loader\FilesystemLoader;
 
 class Core
 {
+    /**
+     * @note Used for the CMS template structuring.
+     * @var $TwigEnvironment
+     */
     private static $TwigEnvironment;
+
+    /**
+     * @note Used for the parent CMS templates defined by the user.
+     * @var $UserTwigEnvironment
+     */
     private static $UserTwigEnvironment;
-    private static $TwigCustomTemplating = array(
+
+    /**
+     * @internal templating definitions.
+     * @var array|null[] $TwigCustomTemplating
+     */
+    private static array $TwigCustomTemplating = array(
         'Header' => null,
         'Navigation' => null,
         'Footer' => null
     );
 
-    public static $Resources = array();
-    private static $TwigTemplates = array();
-    private static $ViewData = array();
+    /**
+     * @internal Contains all Core instantiated resources such as
+     * Settings, DataConnectors etc.
+     * @var array $Resources
+     */
+    public static array $Resources = array();
+
+    /**
+     * @internal Core templating property.
+     * @var array $TwigTemplates
+     */
+    private static array $TwigTemplates = array();
+
+    /**
+     * @internal Data from Modelling for output purpose.
+     * @var array $ViewData
+     */
+    private static array $ViewData = array();
 
     /**
      * @var bool Enable/Disable debugging. | Defaults to TRUE
      */
-    public static $Debug = true;
+    public static bool $Debug = true;
 
     /**
      * @var bool Enable/Disable common return properties as part of XHR Calls.
      */
-    public static $EnableCommonHelpers = false;
+    public static bool $EnableCommonHelpers = false;
 
     /**
      * @var bool Enable/Disable twig cache. | Defaults to TRUE
      */
-    public static $TemplateDevelopmentMode = true;
+    public static bool $TemplateDevelopmentMode = true;
 
     /* User data from requests */
-    public static $UserData = array();
+    public static array $UserData = array();
 
     /**
      * @var HTTP - Compatibility Layer.
      */
-    private static $HTTP;
+    private static HTTP $HTTP;
 
     /* Routing - Sets default routes
     */
-    public static $Route = array(
+    public static array $Route = array(
         'controller' => 'Home',
         'method' => 'main',
         'id' => 0,
@@ -61,7 +93,7 @@ class Core
     /*
      * Accessor for lib objects
      */
-    public static $Accessor = [];
+    public static array $Accessor = [];
 
 
     /**
@@ -98,17 +130,22 @@ class Core
             }
 
             try {
+                self::executeMiddlewareInstantiate(self::$Resources['Declared-Middleware']);
+            } catch (\Exception $e) {
+                error_log("Exception raised: Core::executeMiddlewareInstantiate. " . $e->getMessage());
+                throw new \Exception("Exception raised: Core::executeMiddlewareInstantiate. \n");
+            }
+
+            try {
                 self::requestHandler();
             } catch (\Exception $e) {
                 error_log("Exception raised: Core::requestHandler. " . $e->getMessage());
                 throw new \Exception("Exception raised during request handling. \n" . $e->getTraceAsString());
             }
 
-
             // Loader
             self::__loader();
             self::__output();
-
         } catch (\Exception $e) {
             new ExceptionPrinter($e->getTraceAsString());
             exit();
@@ -117,8 +154,9 @@ class Core
 
 
     /**
-     * requestHandler - Handles user request
+     * Handles user request
      * @return void
+     * @throws ControllerNotFound
      */
     public static function requestHandler()
     {
@@ -143,9 +181,9 @@ class Core
         if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
             $path = array();
 
-            if ($_SERVER['REQUEST_URI'] !== "/") {
+            if (strcasecmp($_SERVER['REQUEST_URI'],"/") > 0) {
                 $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
-                if ($path[0] === '') {
+                if (strcasecmp($path[0],'') == 0) {
                     $path = array_reverse($path, true);
                     array_pop($path);
                     $path = array_reverse($path, true);
@@ -190,12 +228,34 @@ class Core
                 return;
             }
             self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
-            return;
         }
-
-
     }
 
+    /**
+     * @todo complete this function once fully understood what it needs to-do.
+     * @param string $middlewareNSClass
+     * @return void
+     */
+    public static function addMiddleware(string $middlewareNSClass = ''): void
+    {
+        self::$Resources['Declared-Middleware'][] = $middlewareNSClass;
+    }
+
+    /**
+     * @param array $middlewareList
+     * @return void
+     * @throws \Exception
+     */
+    private static function executeMiddlewareInstantiate(array $middlewareList) {
+        try {
+            foreach ($middlewareList as $middleware) {
+                self::$Resources['Middleware'][] = new ($middleware)();
+            }
+        } catch (\Exception $e) {
+            error_log("Exception raised: Core::executeMiddlewareInstantiate. " . $e->getMessage());
+            throw new \Exception("Exception raised during executing middleware. \n" . $e->getTraceAsString());
+        }
+    }
 
     /**
      * Load data storage objects
@@ -212,7 +272,7 @@ class Core
                 }
             }
         } catch (\Exception $e) {
-            throw new DataStorageFailure("Unable to setup datastorage objects: " . $e->getMessage(), 1);
+            throw new DataStorageFailure("Unable to setup DataStorage objects: " . $e->getMessage(), 1);
         }
     }
 
@@ -224,7 +284,6 @@ class Core
      */
     public static function addDataConnectors()
     {
-
         foreach (self::$Resources['DataConnectors'] as $configSection) {
             $configSection = (array) $configSection;
             if (array_key_exists('Resource', $configSection)) {
@@ -245,7 +304,6 @@ class Core
                 }
             }
         }
-
     }
 
 
@@ -344,13 +402,13 @@ class Core
         }
 
         try {
-            $loader = new \Twig\Loader\FilesystemLoader(COREROOT . DS . ".." . DS . 'layout');
-            self::$TwigEnvironment = new \Twig\Environment($loader, array(
+            $loader = new FilesystemLoader(COREROOT . DS . ".." . DS . 'layout');
+            self::$TwigEnvironment = new Environment($loader, array(
                 'debug' => self::$TemplateDevelopmentMode,
                 'cache' => ".." . DS . "cache"
             ));
 
-            self::$TwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
+            self::$TwigEnvironment->addExtension(new DebugExtension());
 
         } catch (\Exception $e) {
             error_log(sprintf("Core::__setupSys, throwing exception. Twig templating engine throwing, %s",
@@ -359,13 +417,13 @@ class Core
         }
 
         try {
-            $loader = new \Twig\Loader\FilesystemLoader(ROOT . DS . "templates");
-            self::$UserTwigEnvironment = new \Twig\Environment($loader, array(
+            $loader = new FilesystemLoader(ROOT . DS . "templates");
+            self::$UserTwigEnvironment = new Environment($loader, array(
                 'debug' => self::$TemplateDevelopmentMode,
                 'cache' => ROOT . DS . "cache"
             ));
 
-            self::$UserTwigEnvironment->addExtension(new \Twig\Extension\DebugExtension());
+            self::$UserTwigEnvironment->addExtension(new DebugExtension());
 
         } catch (\Exception $e) {
             error_log(sprintf("Core::__setupSys, throwing exception. Twig templating engine throwing, %s",
@@ -398,7 +456,7 @@ class Core
             throw new FrameworkSettingsFailure($e->getMessage(), 0);
         }
 
-        // Load settings optionally from CMS db if present.
+        // Load settings optionally from core db if present.
         try {
             if (extension_loaded("SQLite3")) {
                 if (file_exists(ROOT . DS . "sqlite" . DS . "core.sqlite")) {
@@ -695,7 +753,7 @@ class Core
     /**
      * Resource Remover
      * @param $Name
-     * @return false|void
+     * @return false
      */
     public
     static function __removeResource(
