@@ -167,7 +167,13 @@ class Core
         if (isset($_SERVER['CONTENT_TYPE'])) {
             switch (strtolower($_SERVER['CONTENT_TYPE'])) {
                 case 'application/json':
-                    self::$UserData = json_decode(file_get_contents('php://input'), true);
+                    $decodePayload =  json_decode(file_get_contents('php://input'), true);
+                    if ($decodePayload === null) {
+                        self::$UserData = array();
+                    } else {
+                        self::$UserData = $decodePayload;
+                    }
+
                     self::$Route['content'] = 'json';
                     break;
 
