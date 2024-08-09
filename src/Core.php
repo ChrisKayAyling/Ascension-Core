@@ -56,7 +56,7 @@ class Core
      * @internal Data from Modelling for output purpose.
      * @var array $ViewData
      */
-    private static array $ViewData = array();
+    private static array $ViewData;
 
     /**
      * @var bool Enable/Disable debugging. | Defaults to TRUE
@@ -79,7 +79,7 @@ class Core
     /**
      * @var HTTP - Compatibility Layer.
      */
-    private static HTTP $HTTP;
+    private static $HTTP;
 
     /* Routing - Sets default routes
     */
@@ -129,13 +129,13 @@ class Core
                 throw new \Exception("Exception raised during the loading of DataConnectors. \n");
             }
 
-          /*  try {
+            try {
                 if (isset(self::$Resources['Declared-Middleware']))
                     self::executeMiddlewareInstantiate(self::$Resources['Declared-Middleware']);
             } catch (\Exception $e) {
                 error_log("Exception raised: Core::executeMiddlewareInstantiate. " . $e->getMessage());
                 throw new \Exception("Exception raised: Core::executeMiddlewareInstantiate. \n");
-            }*/
+            }
 
             try {
                 self::requestHandler();
