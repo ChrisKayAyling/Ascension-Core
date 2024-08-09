@@ -129,12 +129,13 @@ class Core
                 throw new \Exception("Exception raised during the loading of DataConnectors. \n");
             }
 
-            try {
-                self::executeMiddlewareInstantiate(self::$Resources['Declared-Middleware']);
+          /*  try {
+                if (isset(self::$Resources['Declared-Middleware']))
+                    self::executeMiddlewareInstantiate(self::$Resources['Declared-Middleware']);
             } catch (\Exception $e) {
                 error_log("Exception raised: Core::executeMiddlewareInstantiate. " . $e->getMessage());
                 throw new \Exception("Exception raised: Core::executeMiddlewareInstantiate. \n");
-            }
+            }*/
 
             try {
                 self::requestHandler();
