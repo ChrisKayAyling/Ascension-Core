@@ -3,6 +3,7 @@
 namespace test;
 
 use Ascension\Core;
+use Ascension\Exceptions\ControllerNotFound;
 use Ascension\HTTP;
 use PHPUnit\Framework\TestCase;
 
@@ -477,6 +478,37 @@ class CoreTest extends TestCase
         $this->assertEquals($values['controller'], "Test");
         $this->assertEquals($values['method'], "method");
         $this->assertEquals($values['id'], 0);
+    }
+
+    /**
+     * testExceptionRaisedOnInvalidController
+     * @return void
+     * @throws \ReflectionException
+     */
+    public function testExceptionRaisedOnInvalidController() {
+
+
+            define("ROOT", 'tests/Mock');
+            define("DS", "/");
+
+            $_SERVER['REQUEST_URI'] = "/InvalidController/method";
+
+            $reflectionClass = new \ReflectionClass('Ascension\Core');
+
+            $reflectionMethod = $reflectionClass->getMethod('requestHandler');
+
+            $this->expectExceptionMessage("Core::requestHandler, throwing ControllerNotFound exception. User specified 'InvalidController'. Controller not registered with PSR04 autoloader or could not be found. Controller 'InvalidController' not found.");
+            $this->expectException(\Exception::class);
+
+            $reflectionMethod->invoke($reflectionClass, '');
+
+            $property = $reflectionClass->getProperty('Route');
+
+            $values = $property->getValue();
+
+           /* $this->assertEquals($values['controller'], "Test");
+            $this->assertEquals($values['method'], "method");
+            $this->assertEquals($values['id'], 0);*/
     }
 
 

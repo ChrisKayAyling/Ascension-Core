@@ -1,4 +1,5 @@
 <?php
+
 namespace Ascension;
 
 use Ascension\Exceptions\ControllerNotFound;
@@ -96,6 +97,8 @@ class Core
     public static array $Accessor = [];
 
 
+    public static $RestClient;
+
     /**
      * @throws \Exception
      */
@@ -144,6 +147,13 @@ class Core
                 throw new \Exception("Exception raised during request handling. \n" . $e->getTraceAsString());
             }
 
+            try {
+                self::$RestClient = new RestClient();
+            } catch (\Exception $e) {
+                error_log("Exception raised: self::RestClient = new RestClient()");
+                throw new \Exception("Exception raised during creating a wrapper to the GuzzleClient.\n");
+            }
+
             // Loader
             self::__loader();
             self::__output();
@@ -162,86 +172,89 @@ class Core
     public static function requestHandler()
     {
 
+        try {
+            /* Data Ingress */
+            if (isset($_SERVER['CONTENT_TYPE'])) {
+                switch (strtolower($_SERVER['CONTENT_TYPE'])) {
+                    case 'application/json':
+                        $decodePayload = json_decode(file_get_contents('php://input'), true);
+                        if ($decodePayload === null) {
+                            self::$UserData = array();
+                        } else {
+                            self::$UserData = $decodePayload;
+                        }
 
-        /* Data Ingress */
-        if (isset($_SERVER['CONTENT_TYPE'])) {
-            switch (strtolower($_SERVER['CONTENT_TYPE'])) {
-                case 'application/json':
-                    $decodePayload =  json_decode(file_get_contents('php://input'), true);
-                    if ($decodePayload === null) {
-                        self::$UserData = array();
-                    } else {
-                        self::$UserData = $decodePayload;
-                    }
+                        self::$Route['content'] = 'json';
+                        break;
 
-                    self::$Route['content'] = 'json';
-                    break;
-
-                default;
-                    self::$UserData = $_REQUEST;
-                    self::$Route['content'] = 'plain';
-                    break;
-            }
-        }
-
-        /* Router */
-        if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
-            $path = array();
-
-            if (strcasecmp($_SERVER['REQUEST_URI'],"/") > 0) {
-                $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
-                if (strcasecmp($path[0],'') == 0) {
-                    $path = array_reverse($path, true);
-                    array_pop($path);
-                    $path = array_reverse($path, true);
+                    default;
+                        self::$UserData = $_REQUEST;
+                        self::$Route['content'] = 'plain';
+                        break;
                 }
             }
 
+            /* Router */
+            if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
+                $path = array();
 
-            /* Controller */
-            if (isset($path[1])) {
-                self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
-                if (!is_dir(ROOT . DS . 'lib' . DS . ucfirst(self::$Route['controller']))) {
-                    error_log(sprintf("Core::requestHandler, throwing ControllerNotFound exception. User specified '%s'. Controller not registered with PSR04 autoloader or could not be found. ",
-                            ucfirst(self::$Route['controller'])) . $e->getMessage());
-                    throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.",
-                        1);
-                }
-            } else {
-                self::$Route['controller'] = 'Home';
-            }
-            /* Method extraction */
-            if (isset($path[2])) {
-                self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
-            } else {
-                self::$Route['method'] = 'main';
-            }
-
-            /* filters param extraction */
-
-            if (count($path) > 2) {
-                $path = array_splice($path, 2);
-                $filters = [];
-                foreach ($path as $filterVal) {
-                    $filterSplit = explode(":", $filterVal);
-                    $filters[$filterSplit[0]] = $filterSplit[1];
-
-                    // id to route
-                    if (isset($filterSplit[0]) && isset($filterSplit[1])) {
-                        self::$Route['id'] = array($filterSplit[0] => $filterSplit[1]);
+                if (strcasecmp($_SERVER['REQUEST_URI'], "/") > 0) {
+                    $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
+                    if (strcasecmp($path[0], '') == 0) {
+                        $path = array_reverse($path, true);
+                        array_pop($path);
+                        $path = array_reverse($path, true);
                     }
                 }
-                self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, $filters);
-                return;
+
+
+                /* Controller */
+                if (isset($path[1])) {
+                    self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
+                    if (!is_dir(ROOT . DS . 'lib' . DS . ucfirst(self::$Route['controller']))) {
+                        throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.",
+                            1);
+                    }
+                } else {
+                    self::$Route['controller'] = 'Home';
+                }
+                /* Method extraction */
+                if (isset($path[2])) {
+                    self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
+                } else {
+                    self::$Route['method'] = 'main';
+                }
+
+                /* filters param extraction */
+
+                if (count($path) > 2) {
+                    $path = array_splice($path, 2);
+                    $filters = [];
+                    foreach ($path as $filterVal) {
+                        $filterSplit = explode(":", $filterVal);
+                        $filters[$filterSplit[0]] = $filterSplit[1];
+
+                        // id to route
+                        if (isset($filterSplit[0]) && isset($filterSplit[1])) {
+                            self::$Route['id'] = array($filterSplit[0] => $filterSplit[1]);
+                        }
+                    }
+                    self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, $filters);
+                    return;
+                }
+                self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
             }
-            self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
+        } catch (\Exception $e) {
+            $exceptionMessage = sprintf("Core::requestHandler, throwing ControllerNotFound exception. User specified '%s'. Controller not registered with PSR04 autoloader or could not be found. ", ucfirst(self::$Route['controller'])) . $e->getMessage();
+            error_log($exceptionMessage);
+            throw new \Exception($exceptionMessage);
         }
     }
 
     /**
-     * @todo complete this function once fully understood what it needs to-do.
      * @param string $middlewareNSClass
      * @return void
+     * @todo complete this function once fully understood what it needs to-do.
      */
     public static function addMiddleware(string $middlewareNSClass = ''): void
     {
@@ -253,7 +266,8 @@ class Core
      * @return void
      * @throws \Exception
      */
-    private static function executeMiddlewareInstantiate(array $middlewareList) {
+    private static function executeMiddlewareInstantiate(array $middlewareList)
+    {
         try {
             foreach ($middlewareList as $middleware) {
                 self::$Resources['Middleware'][] = new ($middleware)();
@@ -292,7 +306,7 @@ class Core
     public static function addDataConnectors()
     {
         foreach (self::$Resources['DataConnectors'] as $configSection) {
-            $configSection = (array) $configSection;
+            $configSection = (array)$configSection;
             if (array_key_exists('Resource', $configSection)) {
                 try {
                     if ($configSection['RequiresParameters']) {
@@ -541,7 +555,9 @@ class Core
             self::$Accessor['Controller']->$a();
 
             self::$TwigTemplates = self::$Accessor['Controller']->templates;
-            self::$ViewData = (array)self::$Accessor['Controller']->data;
+
+            // Patch suggest by SM to enforce array return type.
+            self::$ViewData = isset(self::$Accessor['Controller']->data) ? (array)self::$Accessor['Controller']->data : [];
 
             if (self::$EnableCommonHelpers) {
                 self::$ViewData['Common'] = self::getCommon();
@@ -630,7 +646,8 @@ class Core
         string $exchange,
         string $type,
         string $routeKey
-    ) {
+    )
+    {
 
         $factory = new BaseFactory();
 
@@ -710,7 +727,8 @@ class Core
     static function raiseEvent(
         $message,
         $level = E_USER_NOTICE
-    ) {
+    )
+    {
         $trace = debug_backtrace();
         $caller = next($trace);
 
@@ -749,7 +767,8 @@ class Core
     static function __injectResource(
         $Name,
         $Resource
-    ) {
+    )
+    {
         if (!isset(self::$Resources[$Name])) {
             self::$Resources[$Name] = $Resource;
             return true;
@@ -765,7 +784,8 @@ class Core
     public
     static function __removeResource(
         $Name
-    ) {
+    )
+    {
         if (isset(self::$Resources[$Name])) {
             unset(self::$Resources[$Name]);
             return true;
@@ -784,7 +804,8 @@ class Core
     static function addCustomTemplate(
         $Name,
         $Path
-    ) {
+    )
+    {
         self::$TwigCustomTemplating[$Name] = $Path;
         return true;
     }
