@@ -133,11 +133,12 @@ class Core
             }
 
             try {
-                if (isset(self::$Resources['Declared-Middleware']))
-                    self::executeMiddlewareInstantiate(self::$Resources['Declared-Middleware']);
+                if (isset(self::$Resources['Declared-Middleware'])) {
+                    self::executeMiddlewareChain();
+                }
             } catch (\Exception $e) {
-                error_log("Exception raised: Core::executeMiddlewareInstantiate. " . $e->getMessage());
-                throw new \Exception("Exception raised: Core::executeMiddlewareInstantiate. \n");
+                error_log("Exception raised: Core::executeMiddlewareChain. " . $e->getMessage());
+                throw new \Exception("Exception raised: Core::executeMiddlewareChain. \n");
             }
 
             try {
@@ -261,22 +262,36 @@ class Core
         self::$Resources['Declared-Middleware'][] = $middlewareNSClass;
     }
 
+
     /**
-     * @param array $middlewareList
      * @return void
      * @throws \Exception
      */
-    private static function executeMiddlewareInstantiate(array $middlewareList)
+    private static function executeMiddlewareChain()
     {
         try {
-            foreach ($middlewareList as $middleware) {
-                self::$Resources['Middleware'][] = new ($middleware)();
-            }
+            $index = 0;
+            $middlewareCount = count(self::$Resources['Declared-Middleware']);
+
+            $next = function() use (&$index, $middlewareCount) {
+                if ($index < $middlewareCount) {
+                    $middlewareClass = self::$Resources['Declared-Middleware'][$index];
+                    $middlewareInstance = new $middlewareClass();
+                    $index++;
+
+                    $middlewareInstance->handle(self::$HTTP, self::$ViewData, function() use (&$next) {
+                        $next();
+                    });
+                }
+            };
+
+            $next();
         } catch (\Exception $e) {
-            error_log("Exception raised: Core::executeMiddlewareInstantiate. " . $e->getMessage());
+            error_log("Exception raised: Core::executeMiddlewareChain. " . $e->getMessage());
             throw new \Exception("Exception raised during executing middleware. \n" . $e->getTraceAsString());
         }
     }
+
 
     /**
      * Load data storage objects
