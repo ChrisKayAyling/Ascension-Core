@@ -208,28 +208,44 @@ class Core
                     }
                 }
 
+                // Routing with non versioned fall back.
 
-                /* Controller */
                 if (isset($path[1])) {
-                    self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
-                    if (!is_dir(ROOT . DS . 'lib' . DS . ucfirst(self::$Route['controller']))) {
-                        throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.",
-                            1);
+                    if (preg_match('/^[a-zA-Z][0-9]/', $path[1])) {
+                        self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[2]));
+
+                        if ($path[3]) {
+                            self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[3]);
+                        } else {
+                            self::$Route['method'] = "Home";
+                        }
+
+                        self::$Route['version'] = strtolower($path[1]);
+
+                        $filterPos = 3;
+                    } else {
+                        self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
+
+                        if ($path[2]) {
+                            self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
+                        } else {
+                            self::$Route['method'] = "main";
+                        }
+
+                        self::$Route['version'] = "v1";
+
+                        $filterPos = 2;
                     }
-                } else {
-                    self::$Route['controller'] = 'Home';
                 }
-                /* Method extraction */
-                if (isset($path[2])) {
-                    self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
-                } else {
-                    self::$Route['method'] = 'main';
+
+                if (!is_dir(ROOT . DS . 'lib' . DS . self::$Route['version'] . DS . ucfirst(self::$Route['controller']))) {
+                    throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
                 }
 
                 /* filters param extraction */
 
-                if (count($path) > 2) {
-                    $path = array_splice($path, 2);
+                if (count($path) > $filterPos) {
+                    $path = array_splice($path, $filterPos);
                     $filters = [];
                     foreach ($path as $filterVal) {
                         $filterSplit = explode(":", $filterVal);
@@ -545,7 +561,7 @@ class Core
     {
         try {
 
-            $rStr = ucfirst(self::$Route['controller']) . "\\Repository\\Repository";
+            $rStr = ucfirst(self::$Route['version'] . "\\" . self::$Route['controller']) . "\\Repository\\Repository";
             if (!class_exists($rStr)) {
                 throw new FrameworkFailure($rStr . " Repository class not found", 0);
             } else {
@@ -557,7 +573,7 @@ class Core
                 }
             }
 
-            $cStr = ucfirst(self::$Route['controller']) . "\\Controller\\Controller";
+            $cStr = ucfirst(self::$Route['version'] . "\\" . self::$Route['controller']) . "\\Controller\\Controller";
 
             if (!class_exists($cStr)) {
                 throw new FrameworkFailure($cStr . "Controller class not found.", 0);
@@ -569,7 +585,11 @@ class Core
             $a = self::$Route['method'];
             self::$Accessor['Controller']->$a();
 
-            self::$TwigTemplates = self::$Accessor['Controller']->templates;
+            if (!self::$Accessor['Controller']->templates) {
+                self::$TwigTemplates = array();
+            } else {
+                self::$TwigTemplates = self::$Accessor['Controller']->templates;
+            }
 
             // Patch suggest by SM to enforce array return type.
             self::$ViewData = isset(self::$Accessor['Controller']->data) ? (array)self::$Accessor['Controller']->data : [];
