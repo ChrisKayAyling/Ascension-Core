@@ -20,7 +20,8 @@
     "kint-php/kint": "*",
     "matthiasmullie/minify": "*",
     "ext-sqlite3": "*",
-    "php-amqplib/php-amqplib": ">=v3.5.0"
+    "php-amqplib/php-amqplib": ">=v3.5.0",
+    "spatie/ignition": "*"
   },
   "require-dev": {
     "clue/phar-composer": "*",

@@ -15,6 +15,7 @@ use Ascension\RabbitMQ\BaseFactory;
 use Twig\Environment;
 use Twig\Extension\DebugExtension;
 use Twig\Loader\FilesystemLoader;
+use Spatie\Ignition\Ignition;
 
 class Core
 {
@@ -106,6 +107,8 @@ class Core
     public static function ascend()
     {
         try {
+            // Register our error handler
+            Ignition::make()->register();
 
             // Telemetry
             self::telemetry();
