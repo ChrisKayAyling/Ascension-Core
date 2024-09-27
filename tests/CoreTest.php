@@ -594,8 +594,8 @@ class CoreTest extends TestCase
     public function testCore__loader() {
 
         /* include test classes */
-        include_once('Mock/lib/Test/Repository/Repository.php');
-        include_once('Mock/lib/Test/Controller/Controller.php');
+        include_once('Mock/lib/v1/Test/Repository/Repository.php');
+        include_once('Mock/lib/v1/Test/Controller/Controller.php');
 
         $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
 
