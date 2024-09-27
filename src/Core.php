@@ -85,6 +85,7 @@ class Core
     /* Routing - Sets default routes
     */
     public static array $Route = array(
+        'version' => 'v1',
         'controller' => 'Home',
         'method' => 'main',
         'id' => 0,
