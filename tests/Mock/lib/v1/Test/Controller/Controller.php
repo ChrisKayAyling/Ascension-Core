@@ -1,6 +1,6 @@
 <?php
 
-namespace Mock\lib\v1\Test\Controller;
+namespace v1\Test\Controller;
 
 class Controller
 {

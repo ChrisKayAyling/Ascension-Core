@@ -601,6 +601,7 @@ class CoreTest extends TestCase
 
         /* Mock our route */
         $reflectionCoreClass->setStaticPropertyValue("Route", array(
+            'version' => 'v1',
             'controller' => 'Test',
             'method' => 'main'
         ));
