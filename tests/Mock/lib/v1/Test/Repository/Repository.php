@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Repository;
+namespace Mock\lib\v1\Test\Repository;
 
 class Repository
 {
