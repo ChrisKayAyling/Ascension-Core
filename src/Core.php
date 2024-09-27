@@ -149,7 +149,7 @@ class Core
                 self::requestHandler();
             } catch (\Exception $e) {
                 error_log("Exception raised: Core::requestHandler. " . $e->getMessage());
-                throw new \Exception("Exception raised during request handling. \n" . $e->getTraceAsString());
+                throw new \Exception("Exception raised during request handling. \n" . $e->getMessage());
             }
 
             try {
@@ -163,8 +163,7 @@ class Core
             self::__loader();
             self::__output();
         } catch (\Exception $e) {
-            new ExceptionPrinter($e->getTraceAsString());
-            exit();
+            throw new \Exception($e->getMessage());
         }
     }
 
@@ -213,6 +212,7 @@ class Core
                 }
 
                 // Routing with non versioned fall back.
+                $filterPos = 0;
 
                 if (isset($path[1])) {
                     if (preg_match('/^[a-zA-Z][0-9]/', $path[1])) {
