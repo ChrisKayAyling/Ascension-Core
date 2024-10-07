@@ -623,7 +623,7 @@ class Core
         // Process JSON
         if (self::$Route['content'] === 'json') {
             header("Content-Type: application/json");
-            echo json_encode(self::$ViewData, true);
+            echo json_encode(self::$ViewData, JSON_FORCE_OBJECT);
             exit();
         } else {
             // Provide access to SESSION vars within main templates.
