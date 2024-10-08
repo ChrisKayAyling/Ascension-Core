@@ -103,9 +103,12 @@ class Core
     public static $RestClient;
 
     /**
+     * @param $DisableDataConnectors - Explicit disable of data connectors add method call. This can be used when
+     * external flow requires data connectivity outside of normal execution flow.
+     * @return void
      * @throws \Exception
      */
-    public static function ascend()
+    public static function ascend($DisableDataConnectors = FALSE)
     {
         try {
             // Register our error handler
@@ -130,11 +133,13 @@ class Core
                  throw new \Exception("Exception raised during the loading of DataStorageObjects. \n" . $e->getTraceAsString());
              }*/
 
-            try {
-                self::addDataConnectors();
-            } catch (\Exception $e) {
-                error_log("Exception raised: Core::addDataConnectors. " . $e->getMessage());
-                throw new \Exception("Exception raised during the loading of DataConnectors. \n");
+            if ($DisableDataConnectors) {
+                try {
+                    self::addDataConnectors();
+                } catch (\Exception $e) {
+                    error_log("Exception raised: Core::addDataConnectors. " . $e->getMessage());
+                    throw new \Exception("Exception raised during the loading of DataConnectors. \n");
+                }
             }
 
             try {
