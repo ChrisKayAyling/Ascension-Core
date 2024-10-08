@@ -103,12 +103,12 @@ class Core
     public static $RestClient;
 
     /**
-     * @param $DisableDataConnectors - Explicit disable of data connectors add method call. This can be used when
+     * @param bool $DisableDataConnectors - Explicit disable of data connectors add method call. This can be used when
      * external flow requires data connectivity outside of normal execution flow.
      * @return void
      * @throws \Exception
      */
-    public static function ascend($DisableDataConnectors = FALSE)
+    public static function ascend(bool $DisableDataConnectors = FALSE)
     {
         try {
             // Register our error handler
