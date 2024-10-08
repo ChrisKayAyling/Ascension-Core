@@ -133,7 +133,7 @@ class Core
                  throw new \Exception("Exception raised during the loading of DataStorageObjects. \n" . $e->getTraceAsString());
              }*/
 
-            if ($DisableDataConnectors) {
+            if (!$DisableDataConnectors) {
                 try {
                     self::addDataConnectors();
                 } catch (\Exception $e) {
