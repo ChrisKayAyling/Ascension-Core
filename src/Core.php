@@ -12,6 +12,7 @@ use Ascension\Exceptions\RequestIDFailure;
 use Ascension\Exceptions\TemplateEngineFailure;
 use Ascension\RabbitMQ\Base;
 use Ascension\RabbitMQ\BaseFactory;
+use PHPUnit\Logging\Exception;
 use Twig\Environment;
 use Twig\Extension\DebugExtension;
 use Twig\Loader\FilesystemLoader;
@@ -237,7 +238,6 @@ class Core
                         }
 
                         self::$Route['version'] = "v1";
-
                         $filterPos = 2;
                     }
                 }
@@ -249,23 +249,31 @@ class Core
                 /* filters param extraction */
 
                 if (count($path) > $filterPos) {
+
                     $path = array_splice($path, $filterPos);
                     $filters = [];
                     foreach ($path as $filterVal) {
-                        $filterSplit = explode(":", $filterVal);
-                        $filters[$filterSplit[0]] = $filterSplit[1];
+                        if (strlen($filterVal) > 0 && FALSE === strstr($filterVal, "?")) {
+                            $filterSplit = explode(":", $filterVal);
+                            $filters[$filterSplit[0]] = $filterSplit[1];
 
-                        // id to route
-                        if (isset($filterSplit[0]) && isset($filterSplit[1])) {
-                            self::$Route['id'] = array($filterSplit[0] => $filterSplit[1]);
+                            // id to route
+                            if (isset($filterSplit[0]) && isset($filterSplit[1])) {
+                                self::$Route['id'] = array($filterSplit[0] => $filterSplit[1]);
+                            }
+                        } else {
+                            // ID
+                            self::$Route['id'] = intval($filterVal);
                         }
                     }
                     self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, $filters);
                     return;
+
                 }
                 self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
             }
         } catch (\Exception $e) {
+            throw new Exception($e);
             $exceptionMessage = sprintf("Core::requestHandler, throwing ControllerNotFound exception. User specified '%s'. Controller not registered with PSR04 autoloader or could not be found. ", ucfirst(self::$Route['controller'])) . $e->getMessage();
             error_log($exceptionMessage);
             throw new \Exception($exceptionMessage);
@@ -623,7 +631,7 @@ class Core
         // Process JSON
         if (self::$Route['content'] === 'json') {
             header("Content-Type: application/json");
-            echo json_encode(self::$ViewData, JSON_FORCE_OBJECT);
+            echo json_encode(self::$ViewData, true);
             exit();
         } else {
             // Provide access to SESSION vars within main templates.
