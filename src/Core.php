@@ -653,10 +653,8 @@ class Core
         // Process JSON
         if (self::$Route['content'] === 'json') {
             header("Content-Type: application/json");
-            if (empty(self::$ViewData) && !is_array(self::$ViewData)) {
-                echo "";
-            } else {
-                echo json_encode(self::$ViewData, true);
+            if (!empty(self::$ViewData) && self::$ViewData !== "") {
+                echo json_encode(self::$ViewData);
             }
             exit();
         } else {
