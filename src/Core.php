@@ -67,6 +67,11 @@ class Core
     public static bool $Debug = true;
 
     /**
+     * @var bool $ForceJSONResponse - Force 'application/json' response type.
+     */
+    private static bool $ForceJSONResponse = false;
+
+    /**
      * @var bool Enable/Disable common return properties as part of XHR Calls.
      */
     public static bool $EnableCommonHelpers = false;
@@ -108,11 +113,18 @@ class Core
      * @return void
      * @throws \Exception
      */
-    public static function ascend(bool $DisableDataConnectors = FALSE)
+    public static function ascend(bool $DisableDataConnectors = FALSE, bool $DisableIgnitionDebug = FALSE, bool $forceJSONResponseType = FALSE)
     {
         try {
             // Register our error handler
-            Ignition::make()->register();
+            if ($DisableIgnitionDebug) {
+                Ignition::make()->register();
+            }
+
+            // Response Type override
+            if ($forceJSONResponseType) {
+                self::$ForceJSONResponse = true;
+            }
 
             // Telemetry
             self::telemetry();
@@ -202,6 +214,11 @@ class Core
                         self::$Route['content'] = 'plain';
                         break;
                 }
+            }
+
+            /* Override Check */
+            if (self::$ForceJSONResponse) {
+                self::$Route['content'] = 'json';
             }
 
             /* Router */
