@@ -116,7 +116,7 @@ class Core
     {
         try {
             // Register our error handler
-            if ($DisableIgnitionDebug) {
+            if (!$DisableIgnitionDebug) {
                 Ignition::make()->register();
             }
 
@@ -421,7 +421,7 @@ class Core
             }
         }
 
-        if (isset($_SERVER['SERVER_ADDR'])) {
+        if (isset($_SERVER['SERVER_ADDR']) && !defined('SERVER_ADDR')) {
             define('SERVER_ADDR', $_SERVER['SERVER_ADDR']);
         } else {
             $_SERVER['SERVER_ADDR'] = "127.0.0.1";
