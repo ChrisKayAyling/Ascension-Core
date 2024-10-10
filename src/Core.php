@@ -138,12 +138,6 @@ class Core
                 throw new \Exception("Error loading system setup and settings. \n" . $e->getTraceAsString());
             }
 
-            /* try {
-                 self::addDataStorageObjects();
-             } catch (\Exception $e) {
-                 throw new \Exception("Exception raised during the loading of DataStorageObjects. \n" . $e->getTraceAsString());
-             }*/
-
             if (!$DisableDataConnectors) {
                 try {
                     self::addDataConnectors();
@@ -341,26 +335,6 @@ class Core
         }
     }
 
-
-    /**
-     * Load data storage objects
-     * @return void
-     * @throws \Exception
-     */
-    public static function addDataStorageObjects()
-    {
-        try {
-            foreach (self::$Resources['Settings']->DataConnectors as $instance) {
-                $dObject = "DataStorageObjects\\" . $instance->Connector;
-                if (class_exists($dObject)) {
-                    self::$Resources['DataStorage'][$instance->Database] = new $dObject($instance);
-                }
-            }
-        } catch (\Exception $e) {
-            throw new DataStorageFailure("Unable to setup DataStorage objects: " . $e->getMessage(), 1);
-        }
-    }
-
     /**
      * addDataConnectors
      *
@@ -376,7 +350,6 @@ class Core
                     if ($configSection['RequiresParameters']) {
                         self::$Resources['DataStorage'][$configSection['Alias']] = new ($configSection['Resource'])((object)$configSection);
                     } else {
-
                         self::$Resources['DataStorage'][$configSection['Alias']] = new ($configSection['Resource'])();
                     }
 
@@ -545,8 +518,8 @@ class Core
         try {
             if (extension_loaded("SQLite3")) {
                 if (file_exists(ROOT . DS . "sqlite" . DS . "core.sqlite")) {
-                    $handle = new \SQLite3(ROOT . DS . "sqlite" . DS . "core.sqlite");
-                    $result = $handle->query("SELECT * FROM settings");
+                    self::$Resources['DataStorage']['core'] = new \SQLite3(ROOT . DS . "sqlite" . DS . "core.sqlite");
+                    $result = self::$Resources['DataStorage']['core']->query("SELECT * FROM settings");
                     $rows = array();
                     if ($result !== false) {
                         while ($row = $result->fetchArray()) {
@@ -560,7 +533,7 @@ class Core
 
                     /* Data Connectors */
 
-                    $result = $handle->query(sprintf("SELECT * FROM DataConnectors WHERE Environment = '%s'", $settings->Environment));
+                    $result = self::$Resources['DataStorage']['core']->query(sprintf("SELECT * FROM DataConnectors WHERE Environment = '%s'", $settings->Environment));
                     $rows = array();
                     if ($result !== false) {
                         while ($row = $result->fetchArray()) {
