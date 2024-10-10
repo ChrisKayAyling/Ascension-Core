@@ -21,7 +21,8 @@
     "matthiasmullie/minify": "*",
     "ext-sqlite3": "*",
     "php-amqplib/php-amqplib": ">=v3.5.0",
-    "spatie/ignition": "*"
+    "spatie/ignition": "*",
+    "guzzlehttp/guzzle": "^7.0"
   },
   "require-dev": {
     "clue/phar-composer": "*",

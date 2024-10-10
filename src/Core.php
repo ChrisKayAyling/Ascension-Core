@@ -12,7 +12,6 @@ use Ascension\Exceptions\RequestIDFailure;
 use Ascension\Exceptions\TemplateEngineFailure;
 use Ascension\RabbitMQ\Base;
 use Ascension\RabbitMQ\BaseFactory;
-use PHPUnit\Logging\Exception;
 use Twig\Environment;
 use Twig\Extension\DebugExtension;
 use Twig\Loader\FilesystemLoader;
@@ -295,7 +294,7 @@ class Core
                 self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
             }
         } catch (\Exception $e) {
-            throw new Exception($e);
+            throw new \Exception($e);
             $exceptionMessage = sprintf("Core::requestHandler, throwing ControllerNotFound exception. User specified '%s'. Controller not registered with PSR04 autoloader or could not be found. ", ucfirst(self::$Route['controller'])) . $e->getMessage();
             error_log($exceptionMessage);
             throw new \Exception($exceptionMessage);
