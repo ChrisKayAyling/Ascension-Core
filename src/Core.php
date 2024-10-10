@@ -257,7 +257,7 @@ class Core
                     }
                 }
 
-                if (!is_dir(ROOT . DS . 'lib' . DS . self::$Route['version'] . DS . ucfirst(self::$Route['controller']))) {
+                if (!is_dir(ROOT . DS . 'lib' . DS . strtolower(self::$Route['version']) . DS . ucfirst(self::$Route['controller']))) {
                     throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
                 }
 
@@ -567,7 +567,7 @@ class Core
     {
         try {
 
-            $rStr = ucfirst(self::$Route['version'] . "\\" . self::$Route['controller']) . "\\Repository\\Repository";
+            $rStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Repository\\Repository";
             if (!class_exists($rStr)) {
                 throw new FrameworkFailure($rStr . " Repository class not found", 0);
             } else {
@@ -579,7 +579,7 @@ class Core
                 }
             }
 
-            $cStr = ucfirst(self::$Route['version'] . "\\" . self::$Route['controller']) . "\\Controller\\Controller";
+            $cStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Controller\\Controller";
 
             if (!class_exists($cStr)) {
                 throw new FrameworkFailure($cStr . "Controller class not found.", 0);
