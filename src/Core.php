@@ -7,6 +7,7 @@ use Ascension\Exceptions\DataStorageFailure;
 use Ascension\Exceptions\EnvironmentSanityCheckFailure;
 use Ascension\Exceptions\FrameworkFailure;
 use Ascension\Exceptions\FrameworkSettingsFailure;
+use Ascension\Exceptions\HttpException;
 use Ascension\Exceptions\RequestHandlerFailure;
 use Ascension\Exceptions\RequestIDFailure;
 use Ascension\Exceptions\TemplateEngineFailure;
@@ -610,7 +611,18 @@ class Core
             if (self::$Debug) {
                 d(self::$Resources);
             }
-
+        } catch (HttpException $e) {
+            if ('json' === Core::$Route['content']) {
+                self::$ViewData = ['message' => $e->getMessage()];
+            } else {
+                self::$TwigTemplates = [self::$TwigEnvironment->load('exception.twig')];
+                self::$ViewData = [
+                    'message' => $e->getMessage(),
+                    'code' => $e->getCode()
+                ];
+            }
+            http_response_code($e->getCode());
+            self::__output();
         } catch (\Exception $e) {
             throw new FrameworkFailure($e, 0);
         }

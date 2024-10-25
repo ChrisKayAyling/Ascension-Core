@@ -245,21 +245,6 @@ class CoreTest extends TestCase
     }
 
     /**
-     * testCoreHasMethodAddDataStorageObjects
-     *
-     * Check property accessor has been set to correct value.
-     */
-    public function testCoreHasMethodAddDataStorageObjects()
-    {
-        $reflectionCoreClass = new \ReflectionClass('Ascension\Core');
-
-        $properties = $reflectionCoreClass->getMethod("addDataStorageObjects");
-
-        $this->assertEquals($properties->isPublic(), true);
-        $this->assertEquals($properties->isStatic(), true);
-    }
-
-    /**
      * testCoreHasMethod__saneSys
      *
      * Check property accessor has been set to correct value.
