@@ -17,6 +17,7 @@ use Twig\Environment;
 use Twig\Extension\DebugExtension;
 use Twig\Loader\FilesystemLoader;
 use Spatie\Ignition\Ignition;
+use function PHPUnit\Framework\directoryExists;
 
 class Core
 {
@@ -54,6 +55,12 @@ class Core
      * @var array $TwigTemplates
      */
     private static array $TwigTemplates = array();
+
+    /**
+     * @var bool
+     * @internal Indicates if this is a versioned code base.
+     */
+    private static bool $VersionedCodebase = FALSE;
 
     /**
      * @internal Data from Modelling for output purpose.
@@ -217,6 +224,7 @@ class Core
 
             /* Router */
             if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
+
                 $path = array();
 
                 if (strcasecmp($_SERVER['REQUEST_URI'], "/") > 0) {
@@ -226,41 +234,54 @@ class Core
                         array_pop($path);
                         $path = array_reverse($path, true);
                     }
+                } else {
+                    $path[1] = "Home";
+                    $path[2] = "main";
                 }
 
-                // Routing with non versioned fall back.
-                $filterPos = 0;
+                if (preg_match('/^[a-zA-Z][0-9]/', $path[1])) {
 
-                if (isset($path[1])) {
-                    if (preg_match('/^[a-zA-Z][0-9]/', $path[1])) {
-                        self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[2]));
+                    self::$VersionedCodebase = TRUE;
+                    self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[2]));
 
-                        if ($path[3]) {
-                            self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[3]);
-                        } else {
-                            self::$Route['method'] = "Home";
-                        }
-
-                        self::$Route['version'] = strtolower($path[1]);
-
-                        $filterPos = 3;
+                    if ($path[3]) {
+                        self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[3]);
                     } else {
-                        self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
-
-                        if ($path[2]) {
-                            self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
-                        } else {
-                            self::$Route['method'] = "main";
-                        }
-
-                        self::$Route['version'] = "v1";
-                        $filterPos = 2;
+                        self::$Route['method'] = "Home";
                     }
+
+                    self::$Route['version'] = strtolower($path[1]);
+
+                    $filterPos = 3;
+
+                    if (!is_dir(ROOT . DS . 'lib' . DS . strtolower(self::$Route['version']) . DS . ucfirst(self::$Route['controller']))) {
+                        throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
+                    }
+                } else {
+
+                    // Check to see if PSR directory exists
+                    if (is_dir(ROOT . DS . "lib" . DS . ucfirst(self::$Route['controller']))) {
+                        // none versioned codebase
+                        self::$VersionedCodebase = FALSE;
+                    } elseif (is_dir(ROOT . DS . "lib" . DS . "v1" . DS . ucfirst(self::$Route['controller']))) {
+                        // version not specified but directory found under v1.
+                        self::$VersionedCodebase = FALSE;
+                        self::$Route['version'] = "v1";
+                    } else {
+                        throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found in PSR loadable directories.", 1);
+                    }
+
+                    self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
+
+                    if (isset($path[2])) {
+                        self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
+                    } else {
+                        self::$Route['method'] = "main";
+                    }
+
+                    $filterPos = 2;
                 }
 
-                if (!is_dir(ROOT . DS . 'lib' . DS . strtolower(self::$Route['version']) . DS . ucfirst(self::$Route['controller']))) {
-                    throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
-                }
 
                 /* filters param extraction */
 
@@ -317,13 +338,13 @@ class Core
             $index = 0;
             $middlewareCount = count(self::$Resources['Declared-Middleware']);
 
-            $next = function() use (&$index, $middlewareCount) {
+            $next = function () use (&$index, $middlewareCount) {
                 if ($index < $middlewareCount) {
                     $middlewareClass = self::$Resources['Declared-Middleware'][$index];
                     $middlewareInstance = new $middlewareClass();
                     $index++;
 
-                    $middlewareInstance->handle(self::$HTTP, self::$ViewData, function() use (&$next) {
+                    $middlewareInstance->handle(self::$HTTP, self::$ViewData, function () use (&$next) {
                         $next();
                     });
                 }
@@ -529,6 +550,7 @@ class Core
                                 "Group" => $row['Group']
                             );
                         }
+
                         self::__injectResource("AppSettings", (object)$rows);
                     }
 
@@ -567,8 +589,20 @@ class Core
     static function __loader()
     {
         try {
+            if (self::$VersionedCodebase == TRUE) {
+                $rStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Repository\\Repository";
+            } else {
+                // requirement for fallback
+                if (is_dir(ROOT . DS . "lib" . DS . "v1" . DS . ucfirst(self::$Route['controller']))) {
 
-            $rStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Repository\\Repository";
+                    $rStr = "v1" . "\\" . self::$Route['controller'] . "\\Repository\\Repository";
+
+                } else {
+                    $rStr = self::$Route['controller'] . "\\Repository\\Repository";
+                }
+
+            }
+
             if (!class_exists($rStr)) {
                 throw new FrameworkFailure($rStr . " Repository class not found", 0);
             } else {
@@ -579,8 +613,15 @@ class Core
                     throw new FrameworkFailure($e->getMessage(), 0);
                 }
             }
-
-            $cStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Controller\\Controller";
+            if (self::$VersionedCodebase == TRUE) {
+                $cStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Controller\\Controller";
+            } else {
+                if (is_dir(ROOT . DS . "lib" . DS . "v1" . DS . ucfirst(self::$Route['controller']))) {
+                    $cStr = "v1" . "\\" . self::$Route['controller'] . "\\Controller\\Controller";
+                } else {
+                    $cStr = self::$Route['controller'] . "\\Controller\\Controller";
+                }
+            }
 
             if (!class_exists($cStr)) {
                 throw new FrameworkFailure($cStr . "Controller class not found.", 0);
@@ -751,11 +792,10 @@ class Core
             $data['Server']['HTTPS'] = $_SERVER['HTTPS'];
         }
 
-        $data['Server']['SESSION_ID'] = session_id();
-
         // Sessions
         if (isset($_SESSION)) {
             $data['Session'] = $_SESSION;
+            $data['Server']['SESSION_ID'] = session_id();
         }
 
         // Day Of the Week

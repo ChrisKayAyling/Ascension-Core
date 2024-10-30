@@ -514,7 +514,6 @@ class CoreTest extends TestCase
         $this->assertArrayHasKey('SERVER_ADDR', $values['Server']);
         $this->assertArrayHasKey('REMOTE_ADDR', $values['Server']);
         $this->assertArrayHasKey('HTTP_USER_AGENT', $values['Server']);
-        $this->assertArrayHasKey('SESSION_ID', $values['Server']);
 
         $this->assertArrayHasKey('General', $values);
 
