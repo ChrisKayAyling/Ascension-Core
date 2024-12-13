@@ -573,6 +573,18 @@ class Core
                         self::__injectResource("DataConnectors", (object)$rows);
                     }
 
+                    /* Message Queue Table */
+                    $result = self::$Resources['DataStorage']['core']->query("SELECT * FROM MessageQueue_Settings");
+
+                    if ($result !== FALSE) {
+                        $messageQueueSettings = [];
+                        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+                            $messageQueueSettings[$row['Exchange'] . '_' . $row['Queue'] . '_' . $row['Key']] = $row['Value'];
+                        }
+                        self::__injectResource("MessageQueues", (object)$messageQueueSettings);
+                    }
+
+
                 }
             }
         } catch (\Exception $e) {
