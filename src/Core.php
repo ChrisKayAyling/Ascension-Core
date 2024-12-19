@@ -198,8 +198,8 @@ class Core
         try {
             /* Data Ingress */
             if (isset($_SERVER['CONTENT_TYPE'])) {
-                switch (strtolower($_SERVER['CONTENT_TYPE'])) {
-                    case 'application/json':
+                if (preg_match("/application\/json/is", $_SERVER['CONTENT_TYPE'], $matches)) {
+                    if ($matches) {
                         $decodePayload = json_decode(file_get_contents('php://input'), true);
                         if ($decodePayload === null) {
                             self::$UserData = array();
@@ -208,12 +208,12 @@ class Core
                         }
 
                         self::$Route['content'] = 'json';
-                        break;
-
-                    default;
+                    }
+                    else
+                    {
                         self::$UserData = $_REQUEST;
                         self::$Route['content'] = 'plain';
-                        break;
+                    }
                 }
             }
 
