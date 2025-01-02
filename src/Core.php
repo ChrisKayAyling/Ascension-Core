@@ -643,7 +643,16 @@ class Core
             }
 
             $a = self::$Route['method'];
+
             self::$Accessor['Controller']->$a();
+
+            // if property has been implemented in class then check for acceptable request method.
+            if (property_exists(self::$Accessor['Controller'], 'acceptedVerbs')) {
+                if (!in_array(strtoupper($_SERVER['REQUEST_METHOD']), self::$Accessor['Controller']->acceptedVerbs)) {
+                    http_response_code(405);
+                    throw new FrameworkFailure("Request method invalid for this method.", 0);
+                }
+            }
 
             if (!self::$Accessor['Controller']->templates) {
                 self::$TwigTemplates = array();
