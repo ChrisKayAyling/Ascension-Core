@@ -1,6 +1,6 @@
 ﻿# About AscensionCore
 
----
+--
 
 A lightweight highly customisable CMS framework.
 
