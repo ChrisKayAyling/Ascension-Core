@@ -2,6 +2,7 @@
 
 namespace Ascension;
 
+use Ascension\Components\RoutingConfiguration;
 use Ascension\Exceptions\ControllerNotFound;
 use Ascension\Exceptions\DataStorageFailure;
 use Ascension\Exceptions\EnvironmentSanityCheckFailure;
@@ -87,6 +88,11 @@ class Core
      * @var bool Enable/Disable twig cache. | Defaults to TRUE
      */
     public static bool $TemplateDevelopmentMode = true;
+
+    /**
+     * @var object $Routes
+     */
+    public static RoutingConfiguration $Routes;
 
     /* User data from requests */
     public static array $UserData = array();
@@ -186,136 +192,20 @@ class Core
         }
     }
 
-
     /**
-     * Handles user request
+     * announce
+     * @param $type
+     * @param $data
      * @return void
-     * @throws ControllerNotFound
      */
-    public static function requestHandler()
+    public static function announce($type, $data)
     {
 
-        try {
-            /* Data Ingress */
-            if (isset($_SERVER['CONTENT_TYPE'])) {
-                if (preg_match("/application\/json/is", $_SERVER['CONTENT_TYPE'], $matches)) {
-                    if ($matches) {
-                        $decodePayload = json_decode(file_get_contents('php://input'), true);
-                        if ($decodePayload === null) {
-                            self::$UserData = array();
-                        } else {
-                            self::$UserData = $decodePayload;
-                        }
-
-                        self::$Route['content'] = 'json';
-                    }
-                    else
-                    {
-                        self::$UserData = $_REQUEST;
-                        self::$Route['content'] = 'plain';
-                    }
-                }
-            }
-
-            /* Override Check */
-            if (self::$ForceJSONResponse) {
-                self::$Route['content'] = 'json';
-            }
-
-            /* Router */
-            if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
-
-                $path = array();
-
-                if (strcasecmp($_SERVER['REQUEST_URI'], "/") > 0) {
-                    $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
-                    if (strcasecmp($path[0], '') == 0) {
-                        $path = array_reverse($path, true);
-                        array_pop($path);
-                        $path = array_reverse($path, true);
-                    }
-                } else {
-                    $path[1] = "Home";
-                    $path[2] = "main";
-                }
-
-                if (preg_match('/^[a-zA-Z][0-9]/', $path[1])) {
-
-                    self::$VersionedCodebase = TRUE;
-                    self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[2]));
-
-                    if ($path[3]) {
-                        self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[3]);
-                    } else {
-                        self::$Route['method'] = "Home";
-                    }
-
-                    self::$Route['version'] = strtolower($path[1]);
-
-                    $filterPos = 3;
-
-                    if (!is_dir(ROOT . DS . 'lib' . DS . strtolower(self::$Route['version']) . DS . ucfirst(self::$Route['controller']))) {
-                        throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
-                    }
-                } else {
-
-                    // Check to see if PSR directory exists
-                    if (is_dir(ROOT . DS . "lib" . DS . ucfirst(self::$Route['controller']))) {
-                        // none versioned codebase
-                        self::$VersionedCodebase = FALSE;
-                    } elseif (is_dir(ROOT . DS . "lib" . DS . "v1" . DS . ucfirst(self::$Route['controller']))) {
-                        // version not specified but directory found under v1.
-                        self::$VersionedCodebase = FALSE;
-                        self::$Route['version'] = "v1";
-                    } else {
-                        throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found in PSR loadable directories.", 1);
-                    }
-
-                    self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
-
-                    if (isset($path[2])) {
-                        self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
-                    } else {
-                        self::$Route['method'] = "main";
-                    }
-
-                    $filterPos = 2;
-                }
-
-
-                /* filters param extraction */
-
-                if (count($path) > $filterPos) {
-
-                    $path = array_splice($path, $filterPos);
-                    $filters = [];
-                    foreach ($path as $filterVal) {
-                        if (strlen($filterVal) > 0 && FALSE === strstr($filterVal, "?")) {
-                            $filterSplit = explode(":", $filterVal);
-                            $filters[$filterSplit[0]] = $filterSplit[1];
-
-                            // id to route
-                            if (isset($filterSplit[0]) && isset($filterSplit[1])) {
-                                self::$Route['id'] = array($filterSplit[0] => $filterSplit[1]);
-                            }
-                        } else {
-                            // ID
-                            self::$Route['id'] = intval($filterVal);
-                        }
-                    }
-                    self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, $filters);
-                    return;
-
-                }
-                self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
-            }
-        } catch (\Exception $e) {
-            throw new \Exception($e);
-            $exceptionMessage = sprintf("Core::requestHandler, throwing ControllerNotFound exception. User specified '%s'. Controller not registered with PSR04 autoloader or could not be found. ", ucfirst(self::$Route['controller'])) . $e->getMessage();
-            error_log($exceptionMessage);
-            throw new \Exception($exceptionMessage);
+        if ('routing' === strtolower($type)) {
+            self::$Routes = $data;
         }
     }
+
 
     /**
      * @param string $middlewareNSClass
@@ -594,6 +484,240 @@ class Core
         }
     }
 
+
+    /**
+     * Handles user request
+     * @return void
+     * @throws ControllerNotFound
+     */
+    public static function requestHandler()
+    {
+        try {
+            /* Data Ingress */
+            if (isset($_SERVER['CONTENT_TYPE'])) {
+                if (preg_match("/application\/json/is", $_SERVER['CONTENT_TYPE'], $matches)) {
+                    if ($matches) {
+                        $decodePayload = json_decode(file_get_contents('php://input'), true);
+                        if ($decodePayload === null) {
+                            self::$UserData = array();
+                        } else {
+                            self::$UserData = $decodePayload;
+                        }
+
+                        self::$Route['content'] = 'json';
+                    } else {
+                        self::$UserData = $_REQUEST;
+                        self::$Route['content'] = 'plain';
+                    }
+                }
+            }
+
+            /* Override Check */
+            if (self::$ForceJSONResponse) {
+                self::$Route['content'] = 'json';
+            }
+
+            /* Custom Routing */
+            // Check to see if routes match
+            if (!empty(self::$Routes->getRoutes())) {
+                foreach (self::$Routes->getRoutes() as $routeDefinition) {
+                    $routeMatch = false;
+                    preg_match_all('/({\w+})/', $routeDefinition->getPath(), $paramKeyExtraction);
+
+                    array_reverse($paramKeyExtraction);
+                    array_pop($paramKeyExtraction);
+                    array_reverse($paramKeyExtraction);
+
+                    $uriKeyCollection = array();
+
+                    foreach ($paramKeyExtraction as $k => $v) {
+                        //clean up place holder for key name
+                        $uriKeyCollection[] = str_replace("}", "", str_replace("{", "", $v));
+                    }
+
+                    $regex = preg_replace('/({\w+})+/', '([\w+%]+)', $routeDefinition->getPath());
+                    $regex = str_replace("/", "\/", $regex);
+
+                    preg_match('/^' . $regex . '$/m', $_SERVER['REQUEST_URI'], $matches);
+
+                    if (!empty($matches)) {
+                        $routeMatch = true;
+                        // Custom route match.
+                        if (in_array(strtoupper($_SERVER['REQUEST_METHOD']), $routeDefinition->getVerbs())) {
+
+                            // Match confirmed proceed to parameter placement
+                            $matches = array_reverse($matches);
+                            array_pop($matches);
+                            $matches = array_reverse($matches);
+
+                            self::$UserData = array_combine($uriKeyCollection[0], $matches);
+                            self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$UserData['id']);
+
+                            // assign controller and method to be called.
+                            self::$Route['controller'] = $routeDefinition->getController();
+                            self::$Route['method'] = $routeDefinition->getMethod();
+
+                            $r = $routeDefinition->getInjectedClass();
+
+                            try {
+                                self::$Accessor['Repository'] = new $r(self::$Resources['DataStorage'], self::$Resources['Settings']);
+                            } catch (\Exception $e) {
+                                throw new FrameworkFailure($e->getMessage(), 0);
+                            }
+
+                            self::$Accessor['Controller'] = new self::$Route['controller'](self::$HTTP, self::$Resources['Settings'], self::$Accessor['Repository']);
+                            error_log("----------- CUSTOM ROUTE MATCH -------------------");
+                            break;
+                        } else {
+                            echo "Request Method does not match";
+                            die();
+                        }
+                    }
+                }
+
+            }
+
+            if ($routeMatch == false) {
+                error_log("----------- FALLBACK ROUTING -------------------");
+                // Fall back routing via PSR
+                if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
+
+                    $path = array();
+
+                    if (strcasecmp($_SERVER['REQUEST_URI'], "/") > 0) {
+                        $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
+                        if (strcasecmp($path[0], '') == 0) {
+                            $path = array_reverse($path, true);
+                            array_pop($path);
+                            $path = array_reverse($path, true);
+                        }
+                    } else {
+                        $path[1] = "Home";
+                        $path[2] = "main";
+                    }
+
+                    if (preg_match('/^[a-zA-Z][0-9]/', $path[1])) {
+
+                        self::$VersionedCodebase = TRUE;
+                        self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[2]));
+
+                        if ($path[3]) {
+                            self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[3]);
+                        } else {
+                            self::$Route['method'] = "Home";
+                        }
+
+                        self::$Route['version'] = strtolower($path[1]);
+
+                        $filterPos = 3;
+
+                        if (!is_dir(ROOT . DS . 'lib' . DS . strtolower(self::$Route['version']) . DS . ucfirst(self::$Route['controller']))) {
+                            throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found.", 1);
+                        }
+                    } else {
+
+                        // Check to see if PSR directory exists
+                        if (is_dir(ROOT . DS . "lib" . DS . ucfirst(self::$Route['controller']))) {
+                            // none versioned codebase
+                            self::$VersionedCodebase = FALSE;
+                        } elseif (is_dir(ROOT . DS . "lib" . DS . "v1" . DS . ucfirst(self::$Route['controller']))) {
+                            // version not specified but directory found under v1.
+                            self::$VersionedCodebase = FALSE;
+                            self::$Route['version'] = "v1";
+                        } else {
+                            throw new ControllerNotFound("Controller '" . ucfirst(self::$Route['controller']) . "' not found in PSR loadable directories.", 1);
+                        }
+
+                        self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[1]));
+
+                        if (isset($path[2])) {
+                            self::$Route['method'] = preg_replace('/[^a-zA-z]/', '', $path[2]);
+                        } else {
+                            self::$Route['method'] = "main";
+                        }
+
+                        $filterPos = 2;
+                    }
+
+
+                    /* filters param extraction */
+
+                    if (count($path) > $filterPos) {
+
+                        $path = array_splice($path, $filterPos);
+                        $filters = [];
+                        foreach ($path as $filterVal) {
+                            if (strlen($filterVal) > 0 && FALSE === strstr($filterVal, "?")) {
+                                $filterSplit = explode(":", $filterVal);
+                                $filters[$filterSplit[0]] = $filterSplit[1];
+
+                                // id to route
+                                if (isset($filterSplit[0]) && isset($filterSplit[1])) {
+                                    self::$Route['id'] = array($filterSplit[0] => $filterSplit[1]);
+                                }
+                            } else {
+                                // ID
+                                self::$Route['id'] = intval($filterVal);
+                            }
+                        }
+                        self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, $filters);
+                        return;
+
+                    }
+                    self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
+                }
+
+                if (self::$VersionedCodebase == TRUE) {
+                    $rStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Repository\\Repository";
+                } else {
+                    // requirement for fallback
+                    if (is_dir(ROOT . DS . "lib" . DS . "v1" . DS . ucfirst(self::$Route['controller']))) {
+
+                        $rStr = "v1" . "\\" . self::$Route['controller'] . "\\Repository\\Repository";
+
+                    } else {
+                        $rStr = self::$Route['controller'] . "\\Repository\\Repository";
+                    }
+
+                }
+
+                if (!class_exists($rStr)) {
+                    throw new FrameworkFailure($rStr . " Repository class not found", 0);
+                } else {
+                    try {
+                        self::$Accessor['Repository'] = new $rStr(self::$Resources['DataStorage'],
+                            self::$Resources['Settings']);
+                    } catch (\Exception $e) {
+                        throw new FrameworkFailure($e->getMessage(), 0);
+                    }
+                }
+                if (self::$VersionedCodebase == TRUE) {
+                    $cStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Controller\\Controller";
+                } else {
+                    if (is_dir(ROOT . DS . "lib" . DS . "v1" . DS . ucfirst(self::$Route['controller']))) {
+                        $cStr = "v1" . "\\" . self::$Route['controller'] . "\\Controller\\Controller";
+                    } else {
+                        $cStr = self::$Route['controller'] . "\\Controller\\Controller";
+                    }
+                }
+
+                if (!class_exists($cStr)) {
+                    throw new FrameworkFailure($cStr . "Controller class not found.", 0);
+                } else {
+                    self::$Accessor['Controller'] = new $cStr(self::$HTTP, self::$Resources['Settings'],
+                        self::$Accessor['Repository']);
+                }
+            }
+
+
+        } catch (\Exception $e) {
+            throw new \Exception($e);
+            $exceptionMessage = sprintf("Core::requestHandler, throwing ControllerNotFound exception. User specified '%s'. Controller not registered with PSR04 autoloader or could not be found. ", ucfirst(self::$Route['controller'])) . $e->getMessage();
+            error_log($exceptionMessage);
+            throw new \Exception($exceptionMessage);
+        }
+    }
+
     /**
      * @throws \Exception
      */
@@ -601,58 +725,18 @@ class Core
     static function __loader()
     {
         try {
-            if (self::$VersionedCodebase == TRUE) {
-                $rStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Repository\\Repository";
-            } else {
-                // requirement for fallback
-                if (is_dir(ROOT . DS . "lib" . DS . "v1" . DS . ucfirst(self::$Route['controller']))) {
-
-                    $rStr = "v1" . "\\" . self::$Route['controller'] . "\\Repository\\Repository";
-
-                } else {
-                    $rStr = self::$Route['controller'] . "\\Repository\\Repository";
-                }
-
-            }
-
-            if (!class_exists($rStr)) {
-                throw new FrameworkFailure($rStr . " Repository class not found", 0);
-            } else {
-                try {
-                    self::$Accessor['Repository'] = new $rStr(self::$Resources['DataStorage'],
-                        self::$Resources['Settings']);
-                } catch (\Exception $e) {
-                    throw new FrameworkFailure($e->getMessage(), 0);
-                }
-            }
-            if (self::$VersionedCodebase == TRUE) {
-                $cStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Controller\\Controller";
-            } else {
-                if (is_dir(ROOT . DS . "lib" . DS . "v1" . DS . ucfirst(self::$Route['controller']))) {
-                    $cStr = "v1" . "\\" . self::$Route['controller'] . "\\Controller\\Controller";
-                } else {
-                    $cStr = self::$Route['controller'] . "\\Controller\\Controller";
-                }
-            }
-
-            if (!class_exists($cStr)) {
-                throw new FrameworkFailure($cStr . "Controller class not found.", 0);
-            } else {
-                self::$Accessor['Controller'] = new $cStr(self::$HTTP, self::$Resources['Settings'],
-                    self::$Accessor['Repository']);
-            }
 
             $a = self::$Route['method'];
 
             self::$Accessor['Controller']->$a();
 
             // if property has been implemented in class then check for acceptable request method.
-            if (property_exists(self::$Accessor['Controller'], 'acceptedVerbs')) {
-                if (!in_array(strtoupper($_SERVER['REQUEST_METHOD']), self::$Accessor['Controller']->acceptedVerbs)) {
-                    http_response_code(405);
-                    throw new FrameworkFailure("Request method invalid for this method.", 0);
-                }
-            }
+            /* if (property_exists(self::$Accessor['Controller'], 'acceptedVerbs')) {
+                 if (!in_array(strtoupper($_SERVER['REQUEST_METHOD']), self::$Accessor['Controller']->acceptedVerbs)) {
+                     http_response_code(405);
+                     throw new FrameworkFailure("Request method invalid for this method.", 0);
+                 }
+             }*/
 
             if (!self::$Accessor['Controller']->templates) {
                 self::$TwigTemplates = array();
