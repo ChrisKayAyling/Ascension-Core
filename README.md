@@ -1,4 +1,4 @@
-![AscensionCore](https://github.com/ChrisKayAyling/Ascension-Core/blob/main/Ascension-Core-Logo.JPG)
+![AscensionCore](https://gitlab.cornishmutual.co.uk/cmateam/ascensioncore/-/blob/master/Ascension-Core-Logo.JPG?ref_type=heads)
 
  # About Ascension:Core
 
