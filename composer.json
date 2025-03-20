@@ -3,7 +3,7 @@
   "type": "library",
   "description": "A crud framework for loading of resources and output via Twig or JSON",
   "homepage": "https://www.iohost.co.uk/framework",
-  "license": ["GPL-2.0-only"],
+  "license": ["MIT-OS-License"],
   "authors": [
     {
       "name": "Chris Kay-Ayling",
