@@ -544,13 +544,25 @@ class Core
                         $routeMatch = true;
                         // Custom route match.
                         if (in_array(strtoupper($_SERVER['REQUEST_METHOD']), $routeDefinition->getVerbs())) {
+                            switch (strtolower($_SERVER['REQUEST_METHOD'])) {
+                                case 'put':
+                                case 'patch':
+                                case 'post':
+                                    // left blank for the moment
+                                    break;
 
-                            // Match confirmed proceed to parameter placement
-                            $matches = array_reverse($matches);
-                            array_pop($matches);
-                            $matches = array_reverse($matches);
+                                case 'get':
+                                case 'delete':
+                                    // Match confirmed proceed to parameter placement
+                                    $matches = array_reverse($matches);
+                                    array_pop($matches);
+                                    $matches = array_reverse($matches);
 
-                            self::$UserData = array_combine($uriKeyCollection[0], $matches);
+                                    self::$UserData = array_combine($uriKeyCollection[0], $matches);
+                                    break;
+                            }
+
+
                             self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$UserData['id']);
 
                             // assign controller and method to be called.
@@ -577,13 +589,11 @@ class Core
 
             }
 
+            error_log("----------- FALLBACK ROUTING -------------------");
+
             if ($routeMatch == false) {
-                error_log("----------- FALLBACK ROUTING -------------------");
-                // Fall back routing via PSR
                 if (isset($_SERVER['REQUEST_URI']) && strlen($_SERVER['REQUEST_URI']) > 0) {
-
                     $path = array();
-
                     if (strcasecmp($_SERVER['REQUEST_URI'], "/") > 0) {
                         $path = array_values(explode("/", $_SERVER['REQUEST_URI']));
                         if (strcasecmp($path[0], '') == 0) {
@@ -597,7 +607,6 @@ class Core
                     }
 
                     if (preg_match('/^[a-zA-Z][0-9]/', $path[1])) {
-
                         self::$VersionedCodebase = TRUE;
                         self::$Route['controller'] = ucfirst(preg_replace('/[^a-zA-z]/', '', $path[2]));
 
@@ -661,12 +670,12 @@ class Core
                             }
                         }
                         self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, $filters);
-                        return;
-
                     }
+
                     self::$HTTP = new HTTP($_SERVER, $_FILES, self::$UserData, self::$Route['id']);
                 }
 
+                //die(Var_Export( self::$Route['controller'],true));
                 if (self::$VersionedCodebase == TRUE) {
                     $rStr = strtolower(self::$Route['version']) . "\\" . self::$Route['controller'] . "\\Repository\\Repository";
                 } else {
@@ -680,6 +689,7 @@ class Core
                     }
 
                 }
+
 
                 if (!class_exists($rStr)) {
                     throw new FrameworkFailure($rStr . " Repository class not found", 0);
