@@ -1,4 +1,4 @@
-![AscensionCore](https://gitlab.cornishmutual.co.uk/cmateam/ascensioncore/-/blob/master/Ascension-Core-Logo.JPG?ref_type=heads)
+![AscensionCore](Ascension-Core-Logo.JPG)
 
  # About Ascension:Core
 
