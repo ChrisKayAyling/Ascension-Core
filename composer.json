@@ -1,7 +1,7 @@
 {
   "name": "ascension/core",
   "type": "library",
-  "description": "A crud framework for loading of resources and output via Twig or JSON",
+  "description": "AscensionCore is a PHP routing core framework with a focus on speed, ease of implementation without the complications of enforcing a workflow or set of hard standards. The Core can be considered a helper class used in conjuction with the AscensionFramework component it provides an environment for business logic development and data modeling without the complication of costly setup.",
   "homepage": "https://www.iohost.co.uk/framework",
   "license": ["MIT-OS-License"],
   "authors": [
@@ -11,9 +11,9 @@
     }
   ],
   "support": {
-    "issues": "https://github.com/ckay-ayling/ascension/issues",
-    "source": "https://github.com/ckay-ayling/ascension",
-    "docs": "https://www.iohost.co.uk"
+    "issues": "https://github.com/ChrisKayAyling/Ascension-Core/issues",
+    "source": "https://github.com/ChrisKayAyling/Ascension-Core",
+    "docs": "https://github.com/ChrisKayAyling/Ascension-Core/wiki"
   },
   "require": {
     "twig/twig": "*",
