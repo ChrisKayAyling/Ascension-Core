@@ -4,6 +4,9 @@
 
 AscensionCore is a PHP routing core framework with a focus on speed, ease of implementation without the complications of enforcing a workflow or set of hard standards. The Core can be considered a helper class used in conjuction with the AscensionFramework component it provides an environment for business logic development and data modeling without the complication of costly setup.
 
+# Warning
+
+This project is a fork of the Ascension:Core project located on GitHub, feature sets might differ, this code base will not be updated from the parent project automatically. You will need to patch this repository with code from the original repository.
 
 # Contributing
 🎉 Thank you for considering contributing to the Ascension-Core project! We welcome contributions from everyone, whether you're fixing a bug, proposing a feature, or improving the documentation.
